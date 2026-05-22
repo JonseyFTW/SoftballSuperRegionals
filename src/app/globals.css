@@ -174,7 +174,8 @@ button {
 .metrics-grid > *,
 .game-grid > *,
 .entrant-grid > *,
-.entrant-admin-grid > * {
+.entrant-admin-grid > *,
+.entrant-admin-stack > * {
   min-width: 0;
 }
 
@@ -700,6 +701,42 @@ h3 {
 .admin-row-form {
   display: grid;
   gap: 12px;
+}
+
+.entrant-admin-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-disclosure {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.admin-disclosure summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-disclosure summary small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.admin-disclosure .admin-row-form,
+.admin-disclosure .entrant-form {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 8px 8px;
 }
 
 .settings-grid,

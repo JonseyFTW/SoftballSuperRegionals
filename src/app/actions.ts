@@ -48,7 +48,7 @@ export async function saveSettings(formData: FormData) {
       payoutRules,
     },
   }));
-  revalidateAll();
+  refreshAdmin();
 }
 
 export async function saveRound(formData: FormData) {
@@ -66,7 +66,7 @@ export async function saveRound(formData: FormData) {
         : round,
     ),
   }));
-  revalidateAll();
+  refreshAdmin();
 }
 
 export async function saveMatchup(formData: FormData) {
@@ -87,7 +87,7 @@ export async function saveMatchup(formData: FormData) {
         : matchup,
     ),
   }));
-  revalidateAll();
+  refreshAdmin();
 }
 
 export async function saveEntrant(formData: FormData) {
@@ -118,7 +118,7 @@ export async function saveEntrant(formData: FormData) {
         : [...data.entrants, entrant],
     };
   });
-  revalidateAll();
+  refreshAdmin();
 }
 
 export async function deleteEntrant(formData: FormData) {
@@ -128,19 +128,24 @@ export async function deleteEntrant(formData: FormData) {
     ...data,
     entrants: data.entrants.filter((entrant) => entrant.id !== entrantId),
   }));
-  revalidateAll();
+  refreshAdmin();
 }
 
 export async function syncEspn() {
   await requireAdmin();
   await syncLiveSnapshots();
-  revalidateAll();
+  refreshAdmin();
 }
 
 function revalidateAll() {
   revalidatePath("/");
   revalidatePath("/entrants");
   revalidatePath("/admin");
+}
+
+function refreshAdmin() {
+  revalidateAll();
+  redirect("/admin");
 }
 
 function stringFromForm(formData: FormData, key: string, fallback: string): string {

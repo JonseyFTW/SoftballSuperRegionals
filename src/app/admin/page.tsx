@@ -168,33 +168,34 @@ function MatchupForms({ data }: { data: PoolData }) {
         {data.matchups
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((matchup) => (
-            <form
-              key={matchup.id}
-              className="admin-row-form matchup-form"
-              action={saveMatchup}
-              autoComplete="off"
-            >
-              <input type="hidden" name="matchupId" value={matchup.id} />
-              <label>
-                Label
-                <input name="label" defaultValue={matchup.label} />
-              </label>
-              <TeamSelect data={data} name="teamAId" defaultValue={matchup.teamAId} blankLabel="Team A" />
-              <TeamSelect data={data} name="teamBId" defaultValue={matchup.teamBId} blankLabel="Team B" />
-              <WinnerSelect data={data} matchup={matchup} />
-              <label>
-                ESPN game ID
-                <input
-                  name="espnGameId"
-                  defaultValue={matchup.espnGameId ?? ""}
-                  placeholder="Optional override"
-                  autoComplete="off"
-                />
-              </label>
-              <button className="button button-secondary" type="submit">
-                Save
-              </button>
-            </form>
+            <details key={matchup.id} className="admin-disclosure">
+              <summary>
+                <span>{matchup.label}</span>
+                <small>{matchupSummary(data, matchup)}</small>
+              </summary>
+              <form className="admin-row-form matchup-form" action={saveMatchup} autoComplete="off">
+                <input type="hidden" name="matchupId" value={matchup.id} />
+                <label>
+                  Label
+                  <input name="label" defaultValue={matchup.label} />
+                </label>
+                <TeamSelect data={data} name="teamAId" defaultValue={matchup.teamAId} blankLabel="Team A" />
+                <TeamSelect data={data} name="teamBId" defaultValue={matchup.teamBId} blankLabel="Team B" />
+                <WinnerSelect data={data} matchup={matchup} />
+                <label>
+                  ESPN game ID
+                  <input
+                    name="espnGameId"
+                    defaultValue={matchup.espnGameId ?? ""}
+                    placeholder="Optional override"
+                    autoComplete="off"
+                  />
+                </label>
+                <button className="button button-secondary" type="submit">
+                  Save
+                </button>
+              </form>
+            </details>
           ))}
       </div>
     </section>
@@ -210,11 +211,19 @@ function EntrantForms({ data }: { data: PoolData }) {
           <p>Payment handles remain visible only here.</p>
         </div>
       </div>
-      <div className="entrant-admin-grid">
+      <div className="entrant-admin-stack">
         <EntrantForm data={data} />
-        {data.entrants.map((entrant) => (
-          <EntrantForm key={entrant.id} data={data} entrant={entrant} />
-        ))}
+        <div className="admin-list">
+          {data.entrants.map((entrant) => (
+            <details key={entrant.id} className="admin-disclosure entrant-disclosure">
+              <summary>
+                <span>{entrant.name}</span>
+                <small>{entrant.paid ? "Paid" : "Unpaid"} - {Object.keys(entrant.picks).length} picks</small>
+              </summary>
+              <EntrantForm data={data} entrant={entrant} />
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -353,4 +362,13 @@ function PickSelect({
 
 function isTeam(team: Team | undefined): team is Team {
   return Boolean(team);
+}
+
+function matchupSummary(data: PoolData, matchup: Matchup): string {
+  const teams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)]
+    .filter(isTeam)
+    .map((team) => team.shortName);
+  const winner = getTeam(data, matchup.winnerTeamId)?.shortName;
+  const teamText = teams.length ? teams.join(" vs ") : "Teams unset";
+  return winner ? `${teamText} - winner: ${winner}` : teamText;
 }

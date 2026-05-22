@@ -76,7 +76,7 @@ export default async function Home() {
           icon={<Trophy size={18} />}
           label="Top payout"
           value={`$${payout.payouts[0]?.amount ?? 0}`}
-          detail={`${payout.payouts.length} places paid`}
+          detail={`${payout.payouts.length} ${payout.payouts.length === 1 ? "place" : "places"} paid`}
         />
         <MetricCard
           icon={<Wand2 size={18} />}
