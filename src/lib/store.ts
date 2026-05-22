@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { BlobNotFoundError, get, put } from "@vercel/blob";
 import {
   fetchEspnGameSnapshot,
   fetchEspnHeaderSnapshots,
@@ -11,11 +12,17 @@ import type { GameSnapshot, PoolData } from "./types";
 
 const dataFile = poolDataFile();
 const defaultPoolId = "default";
+const blobPath = "pool-state/default.json";
 
 export async function getPoolData(): Promise<PoolData> {
   const supabase = supabaseConfig();
   if (supabase) {
     const data = await getSupabasePoolData(supabase);
+    return data ?? createInitialPoolData();
+  }
+
+  if (blobConfigured()) {
+    const data = await getBlobPoolData();
     return data ?? createInitialPoolData();
   }
 
@@ -32,6 +39,11 @@ export async function savePoolData(data: PoolData): Promise<void> {
   const supabase = supabaseConfig();
   if (supabase) {
     await saveSupabasePoolData(supabase, stamped);
+    return;
+  }
+
+  if (blobConfigured()) {
+    await saveBlobPoolData(stamped);
     return;
   }
 
@@ -171,6 +183,30 @@ function supabaseHeaders(config: SupabaseConfig): HeadersInit {
     apikey: config.key,
     Authorization: `Bearer ${config.key}`,
   };
+}
+
+function blobConfigured(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+async function getBlobPoolData(): Promise<PoolData | undefined> {
+  try {
+    const result = await get(blobPath, { access: "private" });
+    if (!result || result.statusCode !== 200) return undefined;
+    const raw = await new Response(result.stream).text();
+    return JSON.parse(raw) as PoolData;
+  } catch (error) {
+    if (error instanceof BlobNotFoundError) return undefined;
+    throw error;
+  }
+}
+
+async function saveBlobPoolData(data: PoolData): Promise<void> {
+  await put(blobPath, JSON.stringify(data, null, 2), {
+    access: "private",
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
 }
 
 function poolDataFile(): string {
