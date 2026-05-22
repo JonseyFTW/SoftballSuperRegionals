@@ -540,25 +540,74 @@ h3 {
   color: #ffffff;
 }
 
-.diamond-row {
+.base-diamond {
   display: grid;
-  grid-template-columns: repeat(3, 20px);
+  grid-template-columns: repeat(3, 18px);
+  grid-template-rows: repeat(2, 18px);
   justify-content: center;
-  gap: 9px;
-  height: 24px;
+  align-items: center;
+  width: 66px;
+  margin: 0 auto;
 }
 
-.base {
-  width: 16px;
-  height: 16px;
+.base-marker {
+  width: 14px;
+  height: 14px;
   transform: rotate(45deg);
   border: 1px solid #94a3b8;
   background: var(--control);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--control) 70%, transparent);
 }
 
-.base.occupied {
+.base-marker[data-base="second"] {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.base-marker[data-base="third"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.base-marker[data-base="first"] {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.base-marker.occupied {
   border-color: var(--accent-dark);
   background: var(--accent);
+}
+
+.count-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.count-dots > span {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.count-dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  background: var(--control);
+}
+
+.count-dots[data-count-type="balls"] .count-dot.filled {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.count-dots[data-count-type="strikes"] .count-dot.filled {
+  border-color: var(--amber);
+  background: var(--amber);
 }
 
 .compact {

@@ -36,14 +36,26 @@ export function GameCard({ data, matchup }: { data: PoolData; matchup: Matchup }
           <small>{bottomName}</small>
         </div>
       </div>
-      <div className="diamond-row" aria-label="Base runners">
-        <span className={snapshot?.onSecond ? "base occupied" : "base"} />
-        <span className={snapshot?.onThird ? "base occupied" : "base"} />
-        <span className={snapshot?.onFirst ? "base occupied" : "base"} />
+      <div className="base-diamond" data-testid="base-diamond" aria-label="Base runners">
+        <span
+          className={snapshot?.onSecond ? "base-marker occupied" : "base-marker"}
+          data-base="second"
+          aria-label={snapshot?.onSecond ? "Runner on second" : "Second base empty"}
+        />
+        <span
+          className={snapshot?.onThird ? "base-marker occupied" : "base-marker"}
+          data-base="third"
+          aria-label={snapshot?.onThird ? "Runner on third" : "Third base empty"}
+        />
+        <span
+          className={snapshot?.onFirst ? "base-marker occupied" : "base-marker"}
+          data-base="first"
+          aria-label={snapshot?.onFirst ? "Runner on first" : "First base empty"}
+        />
       </div>
       <div className="count-row">
-        <span>B {snapshot?.balls ?? "-"}</span>
-        <span>S {snapshot?.strikes ?? "-"}</span>
+        <CountDots label="B" max={4} value={snapshot?.balls} testId="balls-count" />
+        <CountDots label="S" max={3} value={snapshot?.strikes} testId="strikes-count" />
         <span>O {snapshot?.outs ?? "-"}</span>
       </div>
       <p className="muted compact">
@@ -53,6 +65,36 @@ export function GameCard({ data, matchup }: { data: PoolData; matchup: Matchup }
         {snapshot?.pitcher ? ` · Pitcher: ${snapshot.pitcher}` : ""}
       </p>
     </article>
+  );
+}
+
+function CountDots({
+  label,
+  max,
+  value,
+  testId,
+}: {
+  label: string;
+  max: number;
+  value?: number;
+  testId: string;
+}) {
+  const filledCount = typeof value === "number" ? Math.max(0, Math.min(value, max)) : 0;
+
+  return (
+    <span
+      className="count-dots"
+      data-count-type={label === "B" ? "balls" : "strikes"}
+      data-testid={testId}
+      aria-label={`${label} ${value ?? "-"}`}
+    >
+      <b>{label}</b>
+      <span aria-hidden="true">
+        {Array.from({ length: max }, (_, index) => (
+          <span key={index} className={index < filledCount ? "count-dot filled" : "count-dot"} />
+        ))}
+      </span>
+    </span>
   );
 }
 
