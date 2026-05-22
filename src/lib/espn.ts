@@ -4,7 +4,17 @@ type AnyRecord = Record<string, unknown>;
 
 export function normalizeEspnHeaderEvent(event: unknown): GameSnapshot {
   const record = asRecord(event);
-  const competition = first(asArray(record.competitions));
+  const nestedCompetition = first(asArray(record.competitions));
+  const competition =
+    Object.keys(nestedCompetition).length > 0
+      ? nestedCompetition
+      : {
+          competitors: record.competitors,
+          series: [{ summary: stringValue(record.seriesSummary) }],
+          startDate: record.date,
+          status: record.fullStatus,
+        };
+
   return normalizeCompetition({
     espnGameId: String(record.id ?? ""),
     summary: stringValue(record.summary),
@@ -111,11 +121,15 @@ function inningHalfFromStatus(status: string): string {
 }
 
 function teamName(competitor?: AnyRecord): string {
-  return stringValue(asRecord(competitor?.team).displayName);
+  return (
+    stringValue(asRecord(competitor?.team).displayName) ||
+    stringValue(competitor?.displayName) ||
+    stringValue(competitor?.name)
+  );
 }
 
 function teamAbbreviation(competitor?: AnyRecord): string {
-  return stringValue(asRecord(competitor?.team).abbreviation);
+  return stringValue(asRecord(competitor?.team).abbreviation) || stringValue(competitor?.abbreviation);
 }
 
 function personName(value: unknown): string {

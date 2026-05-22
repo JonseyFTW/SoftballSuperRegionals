@@ -75,6 +75,62 @@ describe("ESPN normalization", () => {
     });
   });
 
+  it("extracts a live scorebug from the current ESPN header shape", () => {
+    const snapshot = normalizeEspnHeaderEvent({
+      id: "401873434",
+      shortName: "TTU @ FLA",
+      summary: "Top 1st",
+      date: "2026-05-22T15:00:00Z",
+      fullStatus: {
+        period: 1,
+        periodPrefix: "Top",
+        type: {
+          state: "in",
+          detail: "Top 1st",
+          completed: false,
+        },
+      },
+      situation: {
+        balls: 0,
+        strikes: 0,
+        outs: 0,
+        onFirst: false,
+        onSecond: false,
+        onThird: false,
+        lastPlay: { text: "Middle of the 1st inning" },
+      },
+      competitors: [
+        {
+          homeAway: "away",
+          displayName: "Texas Tech Red Raiders",
+          abbreviation: "TTU",
+          score: "0",
+        },
+        {
+          homeAway: "home",
+          displayName: "Florida Gators",
+          abbreviation: "FLA",
+          score: "0",
+        },
+      ],
+    });
+
+    expect(snapshot).toMatchObject({
+      espnGameId: "401873434",
+      awayTeamName: "Texas Tech Red Raiders",
+      homeTeamName: "Florida Gators",
+      awayAbbreviation: "TTU",
+      homeAbbreviation: "FLA",
+      awayScore: 0,
+      homeScore: 0,
+      status: "Top 1st",
+      statusState: "in",
+      inning: 1,
+      inningHalf: "Top",
+      lastPlay: "Middle of the 1st inning",
+    });
+  });
+
   it("extracts series and status from a game package payload", () => {
     const snapshot = normalizeEspnGamePackage({
       gameId: 401873428,

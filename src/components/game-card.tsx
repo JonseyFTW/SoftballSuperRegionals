@@ -49,7 +49,7 @@ export function GameCard({ data, matchup }: { data: PoolData; matchup: Matchup }
       <p className="muted compact">
         {snapshot?.batter
           ? `Batter: ${snapshot.batter}`
-          : "Add an ESPN game ID in admin to sync live data."}
+          : snapshot?.lastPlay || "Live ESPN feed"}
         {snapshot?.pitcher ? ` · Pitcher: ${snapshot.pitcher}` : ""}
       </p>
     </article>

@@ -10,6 +10,10 @@ import {
 } from "./pool";
 
 describe("pool scoring", () => {
+  it("does not seed ESPN game IDs into matchups", () => {
+    expect(createInitialPoolData().matchups.some((matchup) => matchup.espnGameId)).toBe(false);
+  });
+
   it("treats manual locks and past lock times as locked", () => {
     expect(
       isRoundLocked({

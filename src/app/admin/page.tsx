@@ -187,7 +187,7 @@ function MatchupForms({ data }: { data: PoolData }) {
                 <input
                   name="espnGameId"
                   defaultValue={matchup.espnGameId ?? ""}
-                  placeholder="401873428"
+                  placeholder="Optional override"
                   autoComplete="off"
                 />
               </label>

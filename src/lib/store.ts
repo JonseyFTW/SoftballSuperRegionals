@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fetchEspnGameSnapshot, fetchEspnHeaderSnapshots } from "./espn";
+import { findMatchupForSnapshot } from "./game-status";
 import { createInitialPoolData } from "./pool";
 import type { GameSnapshot, PoolData } from "./types";
 
@@ -75,7 +76,7 @@ async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
   const byGameId = new Map<string, GameSnapshot>();
 
   snapshots.forEach((snapshot) => {
-    const matchup = data.matchups.find((candidate) => candidate.espnGameId === snapshot.espnGameId);
+    const matchup = findMatchupForSnapshot(data, snapshot);
     byGameId.set(snapshot.espnGameId, {
       ...snapshot,
       matchupId: matchup?.id ?? snapshot.matchupId,
