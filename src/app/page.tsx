@@ -1,5 +1,6 @@
 import { DollarSign, Trophy, Users, Wand2 } from "lucide-react";
 import Link from "next/link";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { GameCard, MatchupRow } from "@/components/game-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { MetricCard } from "@/components/metric-card";
@@ -33,6 +34,7 @@ export default async function Home() {
 
   return (
     <div className="stack">
+      <AutoRefresh />
       <section className="hero-panel">
         <div>
           <p className="eyebrow">Straight pick&apos;em bracket</p>
