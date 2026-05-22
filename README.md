@@ -28,7 +28,9 @@ Set `ADMIN_PASSWORD` before deploying.
 
 ## Data Storage
 
-For Vercel, set the Supabase environment variables from `.env.example`. The app stores the full pool state in a `pool_state` table and falls back to `data/pool.json` for local development when Supabase is not configured.
+For Vercel, link a Vercel Blob store to the project so `BLOB_READ_WRITE_TOKEN` is available. The app stores the full pool state in `pool-state/default.json` and falls back to `data/pool.json` for local development when Blob/Supabase is not configured.
+
+Supabase is also supported if you prefer Postgres. Set the Supabase environment variables from `.env.example` and create this table:
 
 ```sql
 create table public.pool_state (
