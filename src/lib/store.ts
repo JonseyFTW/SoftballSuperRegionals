@@ -1,6 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fetchEspnGameSnapshot, fetchEspnHeaderSnapshots } from "./espn";
+import {
+  fetchEspnGameSnapshot,
+  fetchEspnHeaderSnapshots,
+  fetchEspnScoreboardSnapshots,
+} from "./espn";
 import { findMatchupForSnapshot } from "./game-status";
 import { createInitialPoolData } from "./pool";
 import type { GameSnapshot, PoolData } from "./types";
@@ -62,16 +66,30 @@ export async function syncLiveSnapshots(): Promise<GameSnapshot[]> {
 }
 
 async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
-  const headerSnapshots = await fetchEspnHeaderSnapshots();
+  const [headerResult, scoreboardResult] = await Promise.allSettled([
+    fetchEspnHeaderSnapshots(),
+    fetchEspnScoreboardSnapshots(),
+  ]);
+  const headerSnapshots =
+    headerResult.status === "fulfilled" ? headerResult.value : [];
+  const scoreboardSnapshots =
+    scoreboardResult.status === "fulfilled" ? scoreboardResult.value : [];
+  const discoveredGameIds = new Set(
+    [...headerSnapshots, ...scoreboardSnapshots].map((snapshot) => snapshot.espnGameId),
+  );
   const gameIds = data.matchups
     .map((matchup) => matchup.espnGameId)
-    .filter((gameId): gameId is string => Boolean(gameId));
+    .filter(
+      (gameId): gameId is string =>
+        typeof gameId === "string" && !discoveredGameIds.has(gameId),
+    );
   const focusedSnapshots = await Promise.allSettled(gameIds.map(fetchEspnGameSnapshot));
   const snapshots = [
     ...headerSnapshots,
     ...focusedSnapshots
       .filter((result): result is PromiseFulfilledResult<GameSnapshot> => result.status === "fulfilled")
       .map((result) => result.value),
+    ...scoreboardSnapshots,
   ];
   const byGameId = new Map<string, GameSnapshot>();
 

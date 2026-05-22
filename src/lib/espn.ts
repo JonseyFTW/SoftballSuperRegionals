@@ -37,6 +37,18 @@ export function normalizeEspnGamePackage(payload: unknown): GameSnapshot {
   });
 }
 
+export function normalizeEspnScoreboardEvent(event: unknown): GameSnapshot {
+  const record = asRecord(event);
+  const competition = first(asArray(record.competitions));
+
+  return normalizeCompetition({
+    espnGameId: String(record.id ?? ""),
+    summary: stringValue(record.summary),
+    competition,
+    situation: asRecord(competition.situation),
+  });
+}
+
 async function fetchJson(url: string) {
   const response = await fetch(url, { next: { revalidate: 15 } });
   if (!response.ok) throw new Error(`ESPN request failed: ${response.status}`);
@@ -126,6 +138,13 @@ function teamName(competitor?: AnyRecord): string {
     stringValue(competitor?.displayName) ||
     stringValue(competitor?.name)
   );
+}
+
+export async function fetchEspnScoreboardSnapshots(): Promise<GameSnapshot[]> {
+  const payload = await fetchJson(
+    "https://site.api.espn.com/apis/site/v2/sports/baseball/college-softball/scoreboard",
+  );
+  return asArray(asRecord(payload).events).map(normalizeEspnScoreboardEvent);
 }
 
 function teamAbbreviation(competitor?: AnyRecord): string {

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizeEspnHeaderEvent, normalizeEspnGamePackage } from "./espn";
+import {
+  normalizeEspnHeaderEvent,
+  normalizeEspnGamePackage,
+  normalizeEspnScoreboardEvent,
+} from "./espn";
 import { isLiveSnapshot } from "./game-status";
 
 describe("ESPN normalization", () => {
@@ -128,6 +132,68 @@ describe("ESPN normalization", () => {
       inning: 1,
       inningHalf: "Top",
       lastPlay: "Middle of the 1st inning",
+    });
+  });
+
+  it("extracts live scores and count from the ESPN site scoreboard shape", () => {
+    const snapshot = normalizeEspnScoreboardEvent({
+      id: "401873434",
+      name: "Texas Tech Red Raiders at Florida Gators",
+      shortName: "TTU @ FLA",
+      competitions: [
+        {
+          status: {
+            period: 1,
+            periodPrefix: "Bottom",
+            type: {
+              state: "in",
+              detail: "Bottom 1st",
+              completed: false,
+            },
+          },
+          situation: {
+            balls: 0,
+            strikes: 0,
+            outs: 2,
+            onFirst: true,
+            onSecond: true,
+            onThird: false,
+            batter: { athlete: { displayName: "Kenleigh Cahalan" } },
+            pitcher: { athlete: { displayName: "Kaitlyn - P Terry" } },
+            lastPlay: { text: "K. Terry pitches to K. Cahalan" },
+          },
+          competitors: [
+            {
+              homeAway: "home",
+              score: "1",
+              team: { displayName: "Florida Gators", abbreviation: "FLA" },
+            },
+            {
+              homeAway: "away",
+              score: "0",
+              team: { displayName: "Texas Tech Red Raiders", abbreviation: "TTU" },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(snapshot).toMatchObject({
+      espnGameId: "401873434",
+      awayTeamName: "Texas Tech Red Raiders",
+      homeTeamName: "Florida Gators",
+      awayScore: 0,
+      homeScore: 1,
+      status: "Bottom 1st",
+      statusState: "in",
+      inningHalf: "Bottom",
+      balls: 0,
+      strikes: 0,
+      outs: 2,
+      onFirst: true,
+      onSecond: true,
+      batter: "Kenleigh Cahalan",
+      pitcher: "Kaitlyn - P Terry",
     });
   });
 
