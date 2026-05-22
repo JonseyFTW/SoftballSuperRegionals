@@ -38,6 +38,38 @@ test("public dashboard shows leaderboard, payout, live cards, and PWA metadata",
   expect(hasOverflow).toBe(false);
 });
 
+test("theme toggle switches dark mode and saves the preference", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("theme-test-ready")) {
+      localStorage.removeItem("wcws-theme");
+      sessionStorage.setItem("theme-test-ready", "true");
+    }
+    window.matchMedia = (query) =>
+      ({
+        addEventListener: () => undefined,
+        addListener: () => undefined,
+        dispatchEvent: () => false,
+        matches: false,
+        media: query,
+        onchange: null,
+        removeEventListener: () => undefined,
+        removeListener: () => undefined,
+      }) as MediaQueryList;
+  });
+  await page.goto("/");
+
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light mode" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
 test("entrant pages expose public picks without payment tags", async ({ page }) => {
   await page.goto("/entrants");
   await page.getByRole("link", { name: "Sample Chaser" }).click();

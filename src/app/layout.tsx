@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { Shield, Trophy, Users } from "lucide-react";
 import { PwaRegister } from "@/components/pwa-register";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,6 +60,7 @@ export default function RootLayout({
               <Shield size={17} />
               Admin
             </Link>
+            <ThemeToggle />
           </nav>
         </header>
         <main className="page-shell">{children}</main>

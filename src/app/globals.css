@@ -4,12 +4,44 @@
   --muted: #64748b;
   --panel: #ffffff;
   --panel-strong: #111827;
+  --soft: #f8fafc;
+  --soft-strong: #f1f5f9;
+  --control: #ffffff;
+  --control-foreground: #273244;
+  --header-bg: rgba(255, 255, 255, 0.88);
+  --hero-bg: #ffffff;
+  --hero-accent: rgba(223, 54, 54, 0.12);
+  --page-glow: rgba(17, 24, 39, 0.06);
   --line: #dbe3ea;
   --accent: #df3636;
   --accent-dark: #b91c1c;
   --green: #0f9f6e;
   --amber: #b7791f;
+  --ink: #121826;
   --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="dark"] {
+  --background: #071018;
+  --foreground: #e5e7eb;
+  --muted: #9aa8ba;
+  --panel: #101827;
+  --panel-strong: #030712;
+  --soft: #172033;
+  --soft-strong: #202b3e;
+  --control: #121b2b;
+  --control-foreground: #e5e7eb;
+  --header-bg: rgba(7, 16, 24, 0.9);
+  --hero-bg: #101827;
+  --hero-accent: rgba(223, 54, 54, 0.16);
+  --page-glow: rgba(223, 54, 54, 0.08);
+  --line: #263448;
+  --accent: #f05252;
+  --accent-dark: #fb7185;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --ink: #f8fafc;
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.26);
 }
 
 html {
@@ -26,7 +58,7 @@ body {
   min-height: 100%;
   color: var(--foreground);
   background:
-    linear-gradient(180deg, rgba(17, 24, 39, 0.06), transparent 280px),
+    linear-gradient(180deg, var(--page-glow), transparent 280px),
     var(--background);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -64,8 +96,8 @@ button {
   justify-content: space-between;
   gap: 18px;
   padding: 16px clamp(18px, 4vw, 44px);
-  border-bottom: 1px solid rgba(219, 227, 234, 0.9);
-  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--line);
+  background: var(--header-bg);
   backdrop-filter: blur(16px);
 }
 
@@ -105,18 +137,25 @@ button {
   overflow-x: auto;
 }
 
-.top-nav a {
+.top-nav a,
+.theme-toggle {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
-  color: #273244;
+  background: var(--control);
+  color: var(--control-foreground);
   font-size: 0.9rem;
   white-space: nowrap;
+}
+
+.theme-toggle {
+  width: 40px;
+  padding: 0;
 }
 
 .page-shell {
@@ -157,8 +196,8 @@ button {
   gap: 22px;
   padding: clamp(22px, 4vw, 36px);
   background:
-    linear-gradient(135deg, rgba(223, 54, 54, 0.12), transparent 40%),
-    #ffffff;
+    linear-gradient(135deg, var(--hero-accent), transparent 40%),
+    var(--hero-bg);
 }
 
 .eyebrow {
@@ -226,8 +265,8 @@ h3 {
 
 .button-secondary {
   border-color: var(--line);
-  background: #ffffff;
-  color: #1f2937;
+  background: var(--control);
+  color: var(--control-foreground);
 }
 
 .button-ghost {
@@ -281,7 +320,7 @@ h3 {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: var(--soft-strong);
   color: var(--accent-dark);
 }
 
@@ -385,7 +424,7 @@ h3 {
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--soft-strong);
 }
 
 .odds-bars span {
@@ -424,7 +463,7 @@ h3 {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--panel);
 }
 
 .matchup-row div {
@@ -454,7 +493,7 @@ h3 {
   flex: 0 0 auto;
   padding: 6px 9px;
   border-radius: 999px;
-  background: #f1f5f9;
+  background: var(--soft-strong);
   text-align: right;
 }
 
@@ -481,7 +520,7 @@ h3 {
   min-height: 92px;
   padding: 10px;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--soft);
 }
 
 .score-team strong {
@@ -513,7 +552,7 @@ h3 {
   height: 16px;
   transform: rotate(45deg);
   border: 1px solid #94a3b8;
-  background: #ffffff;
+  background: var(--control);
 }
 
 .base.occupied {
@@ -561,7 +600,7 @@ h3 {
   min-width: 140px;
   padding: 14px;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--soft);
   text-align: right;
 }
 
@@ -635,7 +674,7 @@ h3 {
   width: 42px;
   height: 42px;
   border-radius: 8px;
-  background: #f1f5f9;
+  background: var(--soft-strong);
   color: var(--accent-dark);
 }
 
@@ -673,7 +712,7 @@ h3 {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--soft);
 }
 
 .entrant-form {
@@ -681,13 +720,13 @@ h3 {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--soft);
 }
 
 label {
   display: grid;
   gap: 6px;
-  color: #334155;
+  color: var(--control-foreground);
   font-size: 0.84rem;
   font-weight: 760;
 }
@@ -698,9 +737,9 @@ textarea {
   width: 100%;
   min-height: 38px;
   padding: 8px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--control);
   color: var(--foreground);
 }
 
