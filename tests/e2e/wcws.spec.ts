@@ -99,9 +99,31 @@ test("admin can add an entrant and edit picks", async ({ page }) => {
   await addForm.locator('select[name="pick-super-tennessee-georgia"]').selectOption("tennessee");
   await submitServerAction(page, addForm.getByRole("button", { name: "Add entrant" }));
 
-  await expect(page.getByRole("heading", { name: "Taylor Tester" })).toBeVisible();
+  await expect(page.locator("summary", { hasText: "Taylor Tester" })).toBeVisible();
   await page.goto("/entrants");
   await expect(page.getByRole("link", { name: "Taylor Tester" })).toBeVisible();
+});
+
+test("admin entrant list keeps existing pick forms collapsed until a name is opened", async ({
+  page,
+}) => {
+  await login(page);
+
+  const entrantAdmin = page.locator("section", { hasText: "Entrants + Picks" });
+  const addForm = entrantAdmin.locator("form.entrant-form").first();
+  await expect(addForm.getByLabel("Name")).toBeVisible();
+  await expect(addForm.locator('select[name="pick-super-alabama-lsu"]')).toBeVisible();
+
+  const sampleLeader = entrantAdmin.locator("summary", { hasText: "Sample Leader" });
+  const sampleLeaderForm = entrantAdmin.locator(
+    'form.entrant-form:has(input[name="entrantId"][value="entry-sample-1"])',
+  );
+  await expect(sampleLeader).toBeVisible();
+  await expect(sampleLeaderForm.getByLabel("Name")).toBeHidden();
+
+  await sampleLeader.click();
+  await expect(sampleLeaderForm.getByLabel("Name")).toBeVisible();
+  await expect(sampleLeaderForm.locator('select[name="pick-super-alabama-lsu"]')).toBeVisible();
 });
 
 test("admin can change payout setup", async ({ page }) => {
@@ -113,8 +135,47 @@ test("admin can change payout setup", async ({ page }) => {
   await settings.locator('input[name="payoutPercent-2"]').fill("30");
   await submitServerAction(page, settings.getByRole("button", { name: "Save settings" }));
 
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(settings.locator('select[name="payoutPlaces"]')).toHaveValue("2");
+  await expect(settings.locator('input[name="payoutPercent-1"]')).toHaveValue("70");
+  await expect(settings.locator('input[name="payoutPercent-2"]')).toHaveValue("30");
+
   await page.goto("/");
   await expect(page.getByText("2 places paid")).toBeVisible();
+});
+
+test("admin can change payout setup to one paid place", async ({ page }) => {
+  await login(page);
+
+  const settings = page.locator("form.settings-grid");
+  await settings.locator('select[name="payoutPlaces"]').selectOption("1");
+  await settings.locator('input[name="payoutPercent-1"]').fill("100");
+  await submitServerAction(page, settings.getByRole("button", { name: "Save settings" }));
+
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(settings.locator('select[name="payoutPlaces"]')).toHaveValue("1");
+  await expect(settings.locator('input[name="payoutPercent-1"]')).toHaveValue("100");
+
+  await page.goto("/");
+  await expect(page.getByText("1 place paid")).toBeVisible();
+});
+
+test("admin matchup editor keeps full winner fields collapsed until a game is opened", async ({
+  page,
+}) => {
+  await login(page);
+
+  const matchupAdmin = page.locator("section", { hasText: "Matchups + Winners" });
+  const alabamaLsuForm = matchupAdmin.locator(
+    'form.matchup-form:has(input[name="matchupId"][value="super-alabama-lsu"])',
+  );
+  const alabamaLsuSummary = matchupAdmin.locator("summary", { hasText: "Alabama vs LSU" });
+  await expect(alabamaLsuSummary).toBeVisible();
+  await expect(alabamaLsuForm.getByLabel("Label")).toBeHidden();
+
+  await alabamaLsuSummary.click();
+  await expect(alabamaLsuForm.getByLabel("Label")).toBeVisible();
+  await expect(alabamaLsuForm.getByLabel("Winner")).toBeVisible();
 });
 
 async function login(page: Page) {
