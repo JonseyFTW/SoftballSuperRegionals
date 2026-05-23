@@ -8,6 +8,7 @@ import {
   saveSettings,
   syncEspn,
 } from "@/app/actions";
+import { AutoSubmitForm } from "@/components/auto-submit-form";
 import { requireAdmin } from "@/lib/auth";
 import { getDefaultPayoutRules, getTeam } from "@/lib/pool";
 import { getPoolData } from "@/lib/store";
@@ -230,8 +231,10 @@ function EntrantForms({ data }: { data: PoolData }) {
 }
 
 function EntrantForm({ data, entrant }: { data: PoolData; entrant?: Entrant }) {
+  const Form = entrant ? AutoSubmitForm : "form";
+
   return (
-    <form className="admin-form entrant-form" action={saveEntrant} autoComplete="off">
+    <Form className="admin-form entrant-form" action={saveEntrant} autoComplete="off">
       <input type="hidden" name="entrantId" value={entrant?.id ?? ""} />
       <h3>{entrant ? entrant.name : "Add entrant"}</h3>
       <label>
@@ -287,7 +290,7 @@ function EntrantForm({ data, entrant }: { data: PoolData; entrant?: Entrant }) {
           </button>
         ) : null}
       </div>
-    </form>
+    </Form>
   );
 }
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { calculateLeaderboard, sortLeaderboard } from "@/lib/pool";
 import { getPoolDataWithLiveSnapshots } from "@/lib/store";
 
@@ -10,6 +11,7 @@ export default async function EntrantsPage() {
 
   return (
     <div className="stack">
+      <AutoRefresh />
       <section className="panel">
         <div className="section-heading">
           <div>

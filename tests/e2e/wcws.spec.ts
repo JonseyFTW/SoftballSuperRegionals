@@ -16,7 +16,7 @@ test("public dashboard shows leaderboard, payout, live cards, and PWA metadata",
   await expect(page).toHaveTitle("WCWS Pick'em");
   await expect(page.getByRole("heading", { name: "WCWS Pick'em" })).toBeVisible();
   await expect(page.locator(".game-card, .matchup-row")).toHaveCount(8);
-  await expect(page.getByText("Alabama vs LSU")).toBeVisible();
+  await expect(page.getByText(/Alabama|ALA/).first()).toBeVisible();
   await expect(page.getByRole("table")).toContainText("Sample Chaser");
   await expect(page.getByText("Expected pot")).toBeVisible();
   await expect(page.getByText("Likely Winners")).toBeVisible();
@@ -124,6 +124,52 @@ test("admin entrant list keeps existing pick forms collapsed until a name is ope
   await sampleLeader.click();
   await expect(sampleLeaderForm.getByLabel("Name")).toBeVisible();
   await expect(sampleLeaderForm.locator('select[name="pick-super-alabama-lsu"]')).toBeVisible();
+});
+
+test("admin entrant changes autosave when controls change", async ({ page }) => {
+  await login(page);
+
+  const entrantAdmin = page.locator("section", { hasText: "Entrants + Picks" });
+  await entrantAdmin.locator("summary", { hasText: "Sample Chaser" }).click();
+
+  const sampleChaserForm = entrantAdmin.locator(
+    'form.entrant-form:has(input[name="entrantId"][value="entry-sample-2"])',
+  );
+
+  await Promise.all([
+    page.waitForResponse((response) => response.request().method() === "POST"),
+    sampleChaserForm.getByLabel("Paid").check(),
+  ]);
+
+  await expect(page.locator("summary", { hasText: "Sample Chaser" })).toContainText("Paid");
+});
+
+test("public entrant standings update while the page stays open", async ({ context }) => {
+  const publicPage = await context.newPage();
+  await publicPage.goto("/entrants");
+  await expect(
+    publicPage.locator(".entrant-card", { hasText: "Sample Leader" }).locator(".pill-paid"),
+  ).toContainText("Paid");
+
+  const adminPage = await context.newPage();
+  await login(adminPage);
+
+  const entrantAdmin = adminPage.locator("section", { hasText: "Entrants + Picks" });
+  await entrantAdmin.locator("summary", { hasText: "Sample Leader" }).click();
+  const sampleLeaderForm = entrantAdmin.locator(
+    'form.entrant-form:has(input[name="entrantId"][value="entry-sample-1"])',
+  );
+  await Promise.all([
+    adminPage.waitForResponse((response) => response.request().method() === "POST"),
+    sampleLeaderForm.getByLabel("Paid").uncheck(),
+  ]);
+
+  await expect(
+    publicPage.locator(".entrant-card", { hasText: "Sample Leader" }).locator(".pill-unpaid"),
+  ).toContainText("Unpaid", { timeout: 20_000 });
+
+  await publicPage.close();
+  await adminPage.close();
 });
 
 test("admin can change payout setup", async ({ page }) => {

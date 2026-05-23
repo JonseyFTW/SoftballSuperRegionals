@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { PickList } from "@/components/pick-list";
 import { calculateLeaderboard, calculateScenarioOdds, sortLeaderboard } from "@/lib/pool";
 import { getPoolDataWithLiveSnapshots } from "@/lib/store";
@@ -24,6 +25,7 @@ export default async function EntrantPage({
 
   return (
     <div className="stack">
+      <AutoRefresh />
       <Link className="back-link" href="/entrants">
         <ArrowLeft size={16} />
         All entrants

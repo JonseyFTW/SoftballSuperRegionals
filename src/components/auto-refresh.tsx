@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export function AutoRefresh({ intervalMs = 60_000 }: { intervalMs?: number }) {
+export function AutoRefresh({ intervalMs = 15_000 }: { intervalMs?: number }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -33,10 +33,12 @@ export function AutoRefresh({ intervalMs = 60_000 }: { intervalMs?: number }) {
 
     if (document.visibilityState === "visible") start();
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleVisibility);
 
     return () => {
       stop();
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleVisibility);
     };
   }, [router, intervalMs]);
 
