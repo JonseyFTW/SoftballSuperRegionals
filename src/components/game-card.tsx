@@ -1,5 +1,5 @@
 import { RadioTower } from "lucide-react";
-import { getFinalScoreText, getMatchupSnapshot } from "@/lib/game-status";
+import { getFinalScoreText, getMatchupSnapshot, getSeriesStatusText } from "@/lib/game-status";
 import { getTeam } from "@/lib/pool";
 import type { Matchup, PoolData } from "@/lib/types";
 
@@ -11,11 +11,12 @@ export function GameCard({ data, matchup }: { data: PoolData; matchup: Matchup }
   const bottomName = snapshot?.homeTeamName || teamB?.shortName || "TBD";
   const topScore = snapshot ? snapshot.awayScore : "-";
   const bottomScore = snapshot ? snapshot.homeScore : "-";
+  const seriesStatus = getSeriesStatusText(data, matchup);
 
   return (
     <article className="game-card">
       <div className="game-card-topline">
-        <span>{snapshot?.seriesSummary || matchup.label}</span>
+        <span>{seriesStatus || matchup.label}</span>
         <RadioTower size={15} />
       </div>
       <div className="scorebug">
@@ -102,7 +103,8 @@ export function MatchupRow({ data, matchup }: { data: PoolData; matchup: Matchup
   const teamA = getTeam(data, matchup.teamAId);
   const teamB = getTeam(data, matchup.teamBId);
   const snapshot = getMatchupSnapshot(data, matchup);
-  const status = snapshot?.status || (matchup.espnGameId ? "Not live" : "No ESPN ID");
+  const seriesStatus = getSeriesStatusText(data, matchup);
+  const status = seriesStatus || snapshot?.status || (matchup.espnGameId ? "Not live" : "No ESPN ID");
   const finalScore = getFinalScoreText(snapshot);
 
   return (

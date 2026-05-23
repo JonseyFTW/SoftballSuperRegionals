@@ -9,6 +9,7 @@ import type {
   ScenarioOdd,
   Team,
 } from "./types";
+import { getSeriesWinnerTeamId } from "./game-status";
 
 const now = new Date().toISOString();
 
@@ -187,9 +188,10 @@ export function createInitialPoolData(): PoolData {
 }
 
 export function calculateLeaderboard(data: PoolData): LeaderboardEntry[] {
+  const matchups = matchupsWithSeriesWinners(data);
   return data.entrants.map((entrant) => {
-    const points = calculateEntrantPoints(entrant, data.matchups, data.rounds);
-    const possiblePointsLeft = calculatePossiblePointsLeft(entrant, data.matchups, data.rounds);
+    const points = calculateEntrantPoints(entrant, matchups, data.rounds);
+    const possiblePointsLeft = calculatePossiblePointsLeft(entrant, matchups, data.rounds);
     return {
       entrantId: entrant.id,
       name: entrant.name,
@@ -234,7 +236,8 @@ export function calculatePayouts(data: PoolData) {
 }
 
 export function calculateScenarioOdds(data: PoolData): ScenarioOdd[] {
-  const unresolved = data.matchups.filter(
+  const matchups = matchupsWithSeriesWinners(data);
+  const unresolved = matchups.filter(
     (matchup) =>
       !matchup.winnerTeamId && matchup.teamAId && matchup.teamBId && matchup.roundId !== "champion",
   );
@@ -244,7 +247,7 @@ export function calculateScenarioOdds(data: PoolData): ScenarioOdd[] {
   data.entrants.forEach((entrant) => totals.set(entrant.id, { first: 0, tied: 0 }));
 
   scenarios.forEach((scenario) => {
-    const scenarioMatchups = data.matchups.map((matchup) => ({
+    const scenarioMatchups = matchups.map((matchup) => ({
       ...matchup,
       winnerTeamId: matchup.winnerTeamId ?? scenario[matchup.id],
     }));
@@ -299,6 +302,13 @@ export function isRoundLocked(round: Round, at: Date = new Date()): boolean {
   if (!round.lockAt) return false;
   const lockAt = new Date(round.lockAt);
   return Number.isFinite(lockAt.getTime()) && lockAt <= at;
+}
+
+function matchupsWithSeriesWinners(data: PoolData): Matchup[] {
+  return data.matchups.map((matchup) => ({
+    ...matchup,
+    winnerTeamId: matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup),
+  }));
 }
 
 function calculateEntrantPoints(

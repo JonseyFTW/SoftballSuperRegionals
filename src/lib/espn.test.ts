@@ -197,6 +197,44 @@ describe("ESPN normalization", () => {
     });
   });
 
+  it("extracts series summary when ESPN sends series as an object", () => {
+    const snapshot = normalizeEspnScoreboardEvent({
+      id: "401873440",
+      name: "Oklahoma State Cowgirls at Nebraska Cornhuskers",
+      shortName: "OKST @ NEB",
+      competitions: [
+        {
+          status: {
+            period: 7,
+            type: {
+              state: "post",
+              detail: "Final",
+              completed: true,
+            },
+          },
+          series: {
+            summary: "NEB leads series 1-0",
+            totalCompetitions: 3,
+          },
+          competitors: [
+            {
+              homeAway: "home",
+              score: "8",
+              team: { displayName: "Nebraska Cornhuskers", abbreviation: "NEB" },
+            },
+            {
+              homeAway: "away",
+              score: "1",
+              team: { displayName: "Oklahoma State Cowgirls", abbreviation: "OKST" },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(snapshot.seriesSummary).toBe("NEB leads series 1-0");
+  });
+
   it("extracts series and status from a game package payload", () => {
     const snapshot = normalizeEspnGamePackage({
       gameId: 401873428,

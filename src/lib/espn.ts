@@ -90,7 +90,7 @@ function normalizeCompetition({
   const home = competitors.find((competitor) => competitor.homeAway === "home");
   const status = asRecord(competition.status);
   const statusType = asRecord(status.type);
-  const series = first(asArray(competition.series));
+  const series = firstValue(competition.series);
 
   const statusText =
     stringValue(statusType.detail) ||
@@ -176,6 +176,11 @@ function asArray(value: unknown): unknown[] {
 
 function first(values: unknown[]): AnyRecord {
   return asRecord(values[0]);
+}
+
+function firstValue(value: unknown): AnyRecord {
+  if (Array.isArray(value)) return first(value);
+  return asRecord(value);
 }
 
 function stringValue(value: unknown): string {
