@@ -48,7 +48,7 @@ export default async function EntrantPage({
         <div className="section-heading">
           <div>
             <h2>Bracket Picks</h2>
-            <p>Correct picks turn green after admins record winners.</p>
+            <p>Correct picks turn green once a series winner is available.</p>
           </div>
         </div>
         <PickList data={data} entrant={entrant} />
