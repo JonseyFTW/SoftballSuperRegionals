@@ -3,40 +3,68 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export function AutoRefresh({ intervalMs = 60_000 }: { intervalMs?: number }) {
+export function AutoRefresh({
+  liveIntervalMs = 15_000,
+  idleIntervalMs = 60_000,
+  hasLiveGames = false,
+}: {
+  liveIntervalMs?: number;
+  idleIntervalMs?: number;
+  hasLiveGames?: boolean;
+}) {
   const router = useRouter();
+  const intervalMs = hasLiveGames ? liveIntervalMs : idleIntervalMs;
 
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const start = () => {
-      if (timer) return;
-      timer = setInterval(() => {
-        router.refresh();
-      }, intervalMs);
+    const scheduleNext = () => {
+      if (cancelled) return;
+      timeout = setTimeout(tick, intervalMs);
     };
 
-    const stop = () => {
-      if (!timer) return;
-      clearInterval(timer);
-      timer = undefined;
+    const tick = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "visible") {
+        router.refresh();
+      }
+      scheduleNext();
+    };
+
+    const refreshNow = () => {
+      if (document.visibilityState !== "visible") return;
+      router.refresh();
+      if (timeout) clearTimeout(timeout);
+      scheduleNext();
     };
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        router.refresh();
-        start();
-      } else {
-        stop();
+        refreshNow();
+      } else if (timeout) {
+        clearTimeout(timeout);
+        timeout = undefined;
       }
     };
 
-    if (document.visibilityState === "visible") start();
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) refreshNow();
+    };
+
+    scheduleNext();
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshNow);
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("online", refreshNow);
 
     return () => {
-      stop();
+      cancelled = true;
+      if (timeout) clearTimeout(timeout);
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshNow);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("online", refreshNow);
     };
   }, [router, intervalMs]);
 

@@ -31,7 +31,7 @@ export function GameCard({ data, matchup }: { data: PoolData; matchup: Matchup }
             {snapshot?.inningHalf ? `${snapshot.inningHalf} ${snapshot.inning ?? ""}` : "Series pick"}
           </span>
         </div>
-        <div className="score-team score-team-home">
+        <div className="score-team">
           <span>{snapshot?.homeAbbreviation || teamB?.abbreviation || "HOME"}</span>
           <strong>{bottomScore}</strong>
           <small>{bottomName}</small>

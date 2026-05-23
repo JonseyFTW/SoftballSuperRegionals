@@ -34,7 +34,7 @@ export default async function Home() {
 
   return (
     <div className="stack">
-      <AutoRefresh />
+      <AutoRefresh hasLiveGames={liveMatchups.length > 0} />
       <section className="hero-panel">
         <div>
           <p className="eyebrow">Straight pick&apos;em bracket</p>
