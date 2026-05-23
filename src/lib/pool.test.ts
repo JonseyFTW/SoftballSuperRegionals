@@ -96,6 +96,82 @@ describe("pool scoring", () => {
     });
   });
 
+  it("scores super regional picks only when the best-of-three series is won", () => {
+    const data = createInitialPoolData();
+    const updated = {
+      ...data,
+      snapshots: [
+        {
+          matchupId: "super-florida-texas-tech",
+          espnGameId: "401873434",
+          awayTeamName: "Texas Tech Red Raiders",
+          homeTeamName: "Florida Gators",
+          awayAbbreviation: "TTU",
+          homeAbbreviation: "FLA",
+          awayScore: 5,
+          homeScore: 2,
+          status: "Final",
+          statusState: "post",
+          onFirst: false,
+          onSecond: false,
+          onThird: false,
+          seriesSummary: "TTU wins series 2-0",
+          source: "espn" as const,
+          updatedAt: "2026-05-22T00:00:00.000Z",
+        },
+        {
+          matchupId: "super-nebraska-oklahoma-state",
+          espnGameId: "401873440",
+          awayTeamName: "Oklahoma State Cowgirls",
+          homeTeamName: "Nebraska Cornhuskers",
+          awayAbbreviation: "OKST",
+          homeAbbreviation: "NEB",
+          awayScore: 1,
+          homeScore: 8,
+          status: "Final",
+          statusState: "post",
+          onFirst: false,
+          onSecond: false,
+          onThird: false,
+          seriesSummary: "NEB leads series 1-0",
+          source: "espn" as const,
+          updatedAt: "2026-05-22T00:00:00.000Z",
+        },
+      ],
+      entrants: [
+        {
+          id: "entry-1",
+          name: "Tech Pick",
+          paid: true,
+          tiebreakerRuns: 21,
+          picks: {
+            "super-florida-texas-tech": "texas-tech",
+            "super-nebraska-oklahoma-state": "nebraska",
+          },
+        },
+        {
+          id: "entry-2",
+          name: "Florida Pick",
+          paid: true,
+          tiebreakerRuns: 18,
+          picks: {
+            "super-florida-texas-tech": "florida",
+            "super-nebraska-oklahoma-state": "nebraska",
+          },
+        },
+      ],
+    };
+
+    const leaderboard = calculateLeaderboard(updated);
+
+    expect(leaderboard.find((entry) => entry.name === "Tech Pick")).toMatchObject({
+      points: 1,
+    });
+    expect(leaderboard.find((entry) => entry.name === "Florida Pick")).toMatchObject({
+      points: 0,
+    });
+  });
+
   it("uses championship series total runs as the tie-breaker when actual runs exist", () => {
     const data = {
       ...createInitialPoolData(),
