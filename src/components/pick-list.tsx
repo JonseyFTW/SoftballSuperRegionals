@@ -1,4 +1,5 @@
 import { CheckCircle2, Circle } from "lucide-react";
+import { getSeriesWinnerTeamId } from "@/lib/game-status";
 import { getRound, getTeam } from "@/lib/pool";
 import type { Entrant, PoolData } from "@/lib/types";
 
@@ -9,7 +10,7 @@ export function PickList({ data, entrant }: { data: PoolData; entrant: Entrant }
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((matchup) => {
           const pick = getTeam(data, entrant.picks[matchup.id]);
-          const winner = getTeam(data, matchup.winnerTeamId);
+          const winner = getTeam(data, matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup));
           const isCorrect = pick && winner && pick.id === winner.id;
           const isWrong = pick && winner && pick.id !== winner.id;
           const round = getRound(data, matchup.roundId);
