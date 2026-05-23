@@ -82,7 +82,7 @@ export type GameSnapshot = {
   lastPlay?: string;
   seriesSummary?: string;
   startDate?: string;
-  source: "espn" | "manual";
+  source: "espn" | "manual" | "ncaa";
   updatedAt: string;
 };
 

@@ -7,6 +7,7 @@ import {
   fetchEspnScoreboardSnapshots,
 } from "./espn";
 import { findMatchupForSnapshot } from "./game-status";
+import { fetchNcaaBracketSnapshots } from "./ncaa";
 import { createInitialPoolData } from "./pool";
 import type { GameSnapshot, PoolData } from "./types";
 
@@ -78,14 +79,16 @@ export async function syncLiveSnapshots(): Promise<GameSnapshot[]> {
 }
 
 async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
-  const [headerResult, scoreboardResult] = await Promise.allSettled([
+  const [headerResult, scoreboardResult, ncaaResult] = await Promise.allSettled([
     fetchEspnHeaderSnapshots(),
     fetchEspnScoreboardSnapshots(),
+    fetchNcaaBracketSnapshots(data),
   ]);
   const headerSnapshots =
     headerResult.status === "fulfilled" ? headerResult.value : [];
   const scoreboardSnapshots =
     scoreboardResult.status === "fulfilled" ? scoreboardResult.value : [];
+  const ncaaSnapshots = ncaaResult.status === "fulfilled" ? ncaaResult.value : [];
   const discoveredGameIds = new Set(
     [...headerSnapshots, ...scoreboardSnapshots].map((snapshot) => snapshot.espnGameId),
   );
@@ -102,6 +105,7 @@ async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
       .filter((result): result is PromiseFulfilledResult<GameSnapshot> => result.status === "fulfilled")
       .map((result) => result.value),
     ...scoreboardSnapshots,
+    ...ncaaSnapshots,
   ];
   const byGameId = new Map<string, GameSnapshot>();
 
