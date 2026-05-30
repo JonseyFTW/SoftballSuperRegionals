@@ -6,9 +6,29 @@ import {
   createInitialPoolData,
   getDefaultPayoutRules,
   isRoundLocked,
+  migratePoolData,
   sortLeaderboard,
 } from "./pool";
 import type { Entrant, PoolData } from "./types";
+
+// The first round of every bracket from the seed image.
+const DECIDED: Record<string, string> = {
+  g1: "texas-tech",
+  g2: "tennessee",
+  g3: "alabama",
+  g4: "nebraska",
+  g5: "texas",
+  g6: "ucla",
+};
+
+function withWinners(data: PoolData, winners: Record<string, string>): PoolData {
+  return {
+    ...data,
+    matchups: data.matchups.map((matchup) =>
+      winners[matchup.id] ? { ...matchup, winnerTeamId: winners[matchup.id] } : matchup,
+    ),
+  };
+}
 
 describe("pool scoring", () => {
   it("does not seed ESPN game IDs into matchups", () => {
@@ -53,8 +73,12 @@ describe("pool scoring", () => {
     ).toBe(true);
   });
 
+  it("starts a fresh pool with no winners decided", () => {
+    expect(createInitialPoolData().matchups.some((matchup) => matchup.winnerTeamId)).toBe(false);
+  });
+
   it("scores decided games by round and keeps the full path possible for a clean bracket", () => {
-    const leaderboard = calculateLeaderboard(createInitialPoolData());
+    const leaderboard = calculateLeaderboard(withWinners(createInitialPoolData(), DECIDED));
     const leader = leaderboard.find((entry) => entry.entrantId === "entry-sample-1");
     const chaser = leaderboard.find((entry) => entry.entrantId === "entry-sample-2");
 
@@ -65,14 +89,7 @@ describe("pool scoring", () => {
   });
 
   it("awards the 6-point championship only for picking the team that wins the series", () => {
-    const base = createInitialPoolData();
-    const data: PoolData = {
-      ...base,
-      matchups: base.matchups.map((matchup) =>
-        matchup.id === "championship" ? { ...matchup, winnerTeamId: "alabama" } : matchup,
-      ),
-    };
-
+    const data = withWinners(createInitialPoolData(), { ...DECIDED, championship: "alabama" });
     const leaderboard = calculateLeaderboard(data);
     const leader = leaderboard.find((entry) => entry.entrantId === "entry-sample-1");
     // Leader picked Alabama as champion (+6) on top of the 8 already banked.
@@ -80,7 +97,6 @@ describe("pool scoring", () => {
   });
 
   it("drops possible points once a picked team is eliminated", () => {
-    const base = createInitialPoolData();
     const entrant: Entrant = {
       id: "loser-pick",
       name: "Backed Mississippi State",
@@ -89,10 +105,55 @@ describe("pool scoring", () => {
       // Picked Mississippi State to win the whole thing, but they already lost g1 and g5.
       picks: { championship: "mississippi-state" },
     };
-    const data: PoolData = { ...base, entrants: [entrant] };
+    const data: PoolData = { ...withWinners(createInitialPoolData(), DECIDED), entrants: [entrant] };
 
     const leaderboard = calculateLeaderboard(data);
     expect(leaderboard[0]).toMatchObject({ points: 0, possiblePointsLeft: 0 });
+  });
+});
+
+describe("legacy migration", () => {
+  it("rebuilds the WCWS bracket while preserving entrants and settings", () => {
+    const legacy = {
+      settings: {
+        name: "Family Pool",
+        entryFee: 10,
+        adminVenmo: "@host",
+        payoutRules: [{ place: 1, percent: 100 }],
+      },
+      teams: [{ id: "lsu", name: "LSU", shortName: "LSU", abbreviation: "LSU" }],
+      rounds: [{ id: "super-regionals", name: "Super Regionals", points: 1, isLocked: false }],
+      matchups: [
+        {
+          id: "super-x",
+          roundId: "super-regionals",
+          label: "x",
+          teamAId: "lsu",
+          teamBId: "duke",
+          sortOrder: 1,
+        },
+      ],
+      entrants: [
+        { id: "e1", name: "Chad", paid: true, venmo: "@chad", tiebreakerRuns: 4, picks: { "super-x": "lsu" } },
+      ],
+      snapshots: [],
+      updatedAt: "2026-05-20T00:00:00.000Z",
+    } as unknown as PoolData;
+
+    const migrated = migratePoolData(legacy);
+
+    expect(migrated.matchups).toHaveLength(13);
+    expect(migrated.matchups.every((matchup) => Boolean(matchup.bracketId))).toBe(true);
+    expect(migrated.rounds.find((round) => round.id === "championship")?.points).toBe(6);
+    // Entrants and settings carry over; obsolete picks are dropped.
+    expect(migrated.entrants[0]).toMatchObject({ name: "Chad", paid: true, venmo: "@chad" });
+    expect(migrated.entrants[0].picks).toEqual({});
+    expect(migrated.settings).toMatchObject({ name: "Family Pool", adminVenmo: "@host" });
+  });
+
+  it("is a no-op for data already in the WCWS format", () => {
+    const current = createInitialPoolData();
+    expect(migratePoolData(current)).toBe(current);
   });
 });
 

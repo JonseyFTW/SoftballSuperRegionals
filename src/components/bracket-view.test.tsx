@@ -19,7 +19,19 @@ describe("BracketView", () => {
   });
 
   it("marks an entrant's decided picks correct and incorrect", () => {
-    const data = resolveBracket(createInitialPoolData());
+    const seed = createInitialPoolData();
+    const decided: Record<string, string> = {
+      g1: "texas-tech",
+      g2: "tennessee",
+      g3: "alabama",
+      g4: "nebraska",
+    };
+    const data = resolveBracket({
+      ...seed,
+      matchups: seed.matchups.map((matchup) =>
+        decided[matchup.id] ? { ...matchup, winnerTeamId: decided[matchup.id] } : matchup,
+      ),
+    });
     const leader = data.entrants.find((entrant) => entrant.id === "entry-sample-1");
     const chaser = data.entrants.find((entrant) => entrant.id === "entry-sample-2");
 

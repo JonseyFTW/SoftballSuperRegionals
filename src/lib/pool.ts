@@ -57,14 +57,14 @@ export function createInitialPoolData(): PoolData {
 
   const matchups: Matchup[] = [
     // Bracket 1 winners' round 1
-    game("g1", "wb-round1", "bracket-1", "1", seed("texas-tech"), seed("mississippi-state"), 1, "texas-tech"),
-    game("g2", "wb-round1", "bracket-1", "2", seed("tennessee"), seed("texas"), 2, "tennessee"),
+    game("g1", "wb-round1", "bracket-1", "1", seed("texas-tech"), seed("mississippi-state"), 1),
+    game("g2", "wb-round1", "bracket-1", "2", seed("tennessee"), seed("texas"), 2),
     // Bracket 2 winners' round 1
-    game("g3", "wb-round1", "bracket-2", "3", seed("alabama"), seed("ucla"), 3, "alabama"),
-    game("g4", "wb-round1", "bracket-2", "4", seed("arkansas"), seed("nebraska"), 4, "nebraska"),
+    game("g3", "wb-round1", "bracket-2", "3", seed("alabama"), seed("ucla"), 3),
+    game("g4", "wb-round1", "bracket-2", "4", seed("arkansas"), seed("nebraska"), 4),
     // Elimination round 1 (losers of the two round-1 games)
-    game("g5", "lb-round1", "bracket-1", "5", loser("g1"), loser("g2"), 5, "texas"),
-    game("g6", "lb-round1", "bracket-2", "6", loser("g3"), loser("g4"), 6, "ucla"),
+    game("g5", "lb-round1", "bracket-1", "5", loser("g1"), loser("g2"), 5),
+    game("g6", "lb-round1", "bracket-2", "6", loser("g3"), loser("g4"), 6),
     // Winners' bracket final (winners of the two round-1 games)
     game("g7", "wb-final", "bracket-1", "7", winner("g1"), winner("g2"), 7),
     game("g8", "wb-final", "bracket-2", "8", winner("g3"), winner("g4"), 8),
@@ -138,6 +138,47 @@ export function createInitialPoolData(): PoolData {
     ],
     snapshots: [],
     updatedAt: now,
+  };
+}
+
+/**
+ * Detects pool data saved by the older super-regional model (no bracket feeds /
+ * no championship round) so it can be rebuilt into the WCWS double-elimination
+ * bracket.
+ */
+function isLegacyPool(data: PoolData): boolean {
+  const hasChampionshipRound = data.rounds?.some((round) => round.id === "championship");
+  const everyMatchupHasBracket =
+    Array.isArray(data.matchups) &&
+    data.matchups.length > 0 &&
+    data.matchups.every((matchup) => Boolean(matchup.bracketId));
+  return !hasChampionshipRound || !everyMatchupHasBracket;
+}
+
+/**
+ * Upgrades legacy pool data to the WCWS bracket. Entrants, paid status, and pool
+ * settings are preserved; picks are reset to the new bracket because the old
+ * super-regional picks reference games that no longer exist. Returns the same
+ * object once the data is already in the new format.
+ */
+export function migratePoolData(data: PoolData): PoolData {
+  if (!isLegacyPool(data)) return data;
+
+  const scaffold = createInitialPoolData();
+  const validMatchupIds = new Set(scaffold.matchups.map((matchup) => matchup.id));
+  const entrants = (data.entrants ?? []).map((entrant) => ({
+    ...entrant,
+    picks: Object.fromEntries(
+      Object.entries(entrant.picks ?? {}).filter(([matchupId]) => validMatchupIds.has(matchupId)),
+    ),
+  }));
+
+  return {
+    ...scaffold,
+    settings: { ...scaffold.settings, ...data.settings },
+    entrants,
+    snapshots: [],
+    updatedAt: data.updatedAt ?? scaffold.updatedAt,
   };
 }
 
