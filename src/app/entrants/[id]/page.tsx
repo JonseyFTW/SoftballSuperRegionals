@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { BracketBoard } from "@/components/bracket-board";
 import { PickList } from "@/components/pick-list";
 import { getMatchupSnapshot, isLiveSnapshot } from "@/lib/game-status";
 import { calculateLeaderboard, calculateScenarioOdds, sortLeaderboard } from "@/lib/pool";
@@ -54,10 +55,13 @@ export default async function EntrantPage({
         <div className="section-heading">
           <div>
             <h2>Bracket Picks</h2>
-            <p>Correct picks turn green once a series winner is available.</p>
+            <p>Correct picks turn green once a winner or advancer is available.</p>
           </div>
         </div>
-        <PickList data={data} entrant={entrant} />
+        <BracketBoard data={data} entrant={entrant} />
+        <div className="pick-list-panel">
+          <PickList data={data} entrant={entrant} />
+        </div>
       </section>
     </div>
   );

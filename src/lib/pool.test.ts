@@ -17,8 +17,8 @@ describe("pool scoring", () => {
   it("treats manual locks and past lock times as locked", () => {
     expect(
       isRoundLocked({
-        id: "super-regionals",
-        name: "Super Regionals",
+        id: "winners-first",
+        name: "Winners' Bracket Opening Round",
         points: 1,
         isLocked: true,
       }),
@@ -26,8 +26,8 @@ describe("pool scoring", () => {
     expect(
       isRoundLocked(
         {
-          id: "super-regionals",
-          name: "Super Regionals",
+          id: "winners-first",
+          name: "Winners' Bracket Opening Round",
           points: 1,
           isLocked: false,
           lockAt: "2026-05-21T18:00:00.000Z",
@@ -40,17 +40,17 @@ describe("pool scoring", () => {
   it("scores resolved picks and keeps only still-alive unresolved picks possible", () => {
     const data = createInitialPoolData();
     const tennesseeGeorgia = data.matchups.find(
-      (matchup) => matchup.id === "super-tennessee-georgia",
+      (matchup) => matchup.id === "game-2",
     );
-    const semis = data.rounds.find((round) => round.id === "wcws-semis");
+    const semis = data.rounds.find((round) => round.id === "winners-second");
 
     expect(tennesseeGeorgia).toBeDefined();
-    expect(semis?.points).toBe(2);
+    expect(semis?.points).toBe(3);
 
     const updated = {
       ...data,
       matchups: data.matchups.map((matchup) =>
-        matchup.id === "super-tennessee-georgia"
+        matchup.id === "game-2"
           ? { ...matchup, winnerTeamId: "tennessee" }
           : matchup,
       ),
@@ -61,9 +61,9 @@ describe("pool scoring", () => {
           paid: true,
           tiebreakerRuns: 21,
           picks: {
-            "super-tennessee-georgia": "tennessee",
-            "super-alabama-lsu": "alabama",
-            "wcws-semi-1": "tennessee",
+            "game-2": "tennessee",
+            "game-1": "texas-tech",
+            "game-7": "tennessee",
           },
         },
         {
@@ -72,9 +72,9 @@ describe("pool scoring", () => {
           paid: false,
           tiebreakerRuns: 18,
           picks: {
-            "super-tennessee-georgia": "georgia",
-            "super-alabama-lsu": "lsu",
-            "wcws-semi-1": "georgia",
+            "game-2": "texas",
+            "game-1": "mississippi-state",
+            "game-7": "texas",
           },
         },
       ],
@@ -85,29 +85,29 @@ describe("pool scoring", () => {
     expect(leaderboard[0]).toMatchObject({
       entrantId: "entry-1",
       points: 1,
-      possiblePointsLeft: 3,
-      maxPoints: 4,
+      possiblePointsLeft: 4,
+      maxPoints: 5,
     });
     expect(leaderboard[1]).toMatchObject({
       entrantId: "entry-2",
       points: 0,
-      possiblePointsLeft: 1,
-      maxPoints: 1,
+      possiblePointsLeft: 4,
+      maxPoints: 4,
     });
   });
 
-  it("scores super regional picks only when the best-of-three series is won", () => {
+  it("scores bracket picks when the game winner is set", () => {
     const data = createInitialPoolData();
     const updated = {
       ...data,
       snapshots: [
         {
-          matchupId: "super-florida-texas-tech",
+          matchupId: "game-1",
           espnGameId: "401873434",
           awayTeamName: "Texas Tech Red Raiders",
-          homeTeamName: "Florida Gators",
+          homeTeamName: "Mississippi State Bulldogs",
           awayAbbreviation: "TTU",
-          homeAbbreviation: "FLA",
+          homeAbbreviation: "MSST",
           awayScore: 5,
           homeScore: 2,
           status: "Final",
@@ -120,11 +120,11 @@ describe("pool scoring", () => {
           updatedAt: "2026-05-22T00:00:00.000Z",
         },
         {
-          matchupId: "super-nebraska-oklahoma-state",
+          matchupId: "game-4",
           espnGameId: "401873440",
-          awayTeamName: "Oklahoma State Cowgirls",
+          awayTeamName: "Arkansas Razorbacks",
           homeTeamName: "Nebraska Cornhuskers",
-          awayAbbreviation: "OKST",
+          awayAbbreviation: "ARK",
           homeAbbreviation: "NEB",
           awayScore: 1,
           homeScore: 8,
@@ -145,18 +145,18 @@ describe("pool scoring", () => {
           paid: true,
           tiebreakerRuns: 21,
           picks: {
-            "super-florida-texas-tech": "texas-tech",
-            "super-nebraska-oklahoma-state": "nebraska",
+            "game-1": "texas-tech",
+            "game-4": "nebraska",
           },
         },
         {
           id: "entry-2",
-          name: "Florida Pick",
+          name: "Mississippi State Pick",
           paid: true,
           tiebreakerRuns: 18,
           picks: {
-            "super-florida-texas-tech": "florida",
-            "super-nebraska-oklahoma-state": "nebraska",
+            "game-1": "mississippi-state",
+            "game-4": "nebraska",
           },
         },
       ],
@@ -165,10 +165,10 @@ describe("pool scoring", () => {
     const leaderboard = calculateLeaderboard(updated);
 
     expect(leaderboard.find((entry) => entry.name === "Tech Pick")).toMatchObject({
-      points: 1,
+      points: 2,
     });
-    expect(leaderboard.find((entry) => entry.name === "Florida Pick")).toMatchObject({
-      points: 0,
+    expect(leaderboard.find((entry) => entry.name === "Mississippi State Pick")).toMatchObject({
+      points: 1,
     });
   });
 
@@ -249,7 +249,7 @@ describe("scenario odds", () => {
       ...createInitialPoolData(),
       matchups: createInitialPoolData().matchups
         .filter((matchup) =>
-          ["super-alabama-lsu", "super-tennessee-georgia"].includes(matchup.id),
+          ["game-1", "game-2"].includes(matchup.id),
         )
         .map((matchup) => ({ ...matchup, winnerTeamId: undefined })),
       entrants: [
@@ -259,8 +259,8 @@ describe("scenario odds", () => {
           paid: true,
           tiebreakerRuns: 20,
           picks: {
-            "super-alabama-lsu": "alabama",
-            "super-tennessee-georgia": "tennessee",
+            "game-1": "texas-tech",
+            "game-2": "tennessee",
           },
         },
         {
@@ -269,8 +269,8 @@ describe("scenario odds", () => {
           paid: true,
           tiebreakerRuns: 21,
           picks: {
-            "super-alabama-lsu": "lsu",
-            "super-tennessee-georgia": "georgia",
+            "game-1": "mississippi-state",
+            "game-2": "texas",
           },
         },
       ],

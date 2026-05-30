@@ -55,9 +55,9 @@ describe("game status display", () => {
     const matchup = findMatchupForSnapshot(data, {
       espnGameId: "401873434",
       awayTeamName: "Texas Tech Red Raiders",
-      homeTeamName: "Florida Gators",
+      homeTeamName: "Mississippi State Bulldogs",
       awayAbbreviation: "TTU",
-      homeAbbreviation: "FLA",
+      homeAbbreviation: "MSST",
       awayScore: 0,
       homeScore: 0,
       status: "Top 1st",
@@ -69,24 +69,24 @@ describe("game status display", () => {
       updatedAt: "2026-05-22T00:00:00.000Z",
     });
 
-    expect(matchup?.id).toBe("super-florida-texas-tech");
+    expect(matchup?.id).toBe("game-1");
   });
 
   it("formats the next game from a best-of-three series lead", () => {
     const data = createInitialPoolData();
     const matchup = data.matchups.find(
-      (candidate) => candidate.id === "super-nebraska-oklahoma-state",
+      (candidate) => candidate.id === "game-4",
     );
 
     expect(matchup).toBeDefined();
 
     data.snapshots = [
       {
-        matchupId: "super-nebraska-oklahoma-state",
+        matchupId: "game-4",
         espnGameId: "401873440",
-        awayTeamName: "Oklahoma State Cowgirls",
+        awayTeamName: "Arkansas Razorbacks",
         homeTeamName: "Nebraska Cornhuskers",
-        awayAbbreviation: "OKST",
+        awayAbbreviation: "ARK",
         homeAbbreviation: "NEB",
         awayScore: 1,
         homeScore: 8,
@@ -108,19 +108,19 @@ describe("game status display", () => {
   it("identifies a best-of-three series winner from a completed series summary", () => {
     const data = createInitialPoolData();
     const matchup = data.matchups.find(
-      (candidate) => candidate.id === "super-florida-texas-tech",
+      (candidate) => candidate.id === "game-1",
     );
 
     expect(matchup).toBeDefined();
 
     data.snapshots = [
       {
-        matchupId: "super-florida-texas-tech",
+        matchupId: "game-1",
         espnGameId: "401873434",
         awayTeamName: "Texas Tech Red Raiders",
-        homeTeamName: "Florida Gators",
+        homeTeamName: "Mississippi State Bulldogs",
         awayAbbreviation: "TTU",
-        homeAbbreviation: "FLA",
+        homeAbbreviation: "MSST",
         awayScore: 5,
         homeScore: 2,
         status: "Final",
@@ -141,19 +141,19 @@ describe("game status display", () => {
   it("uses the furthest series snapshot when multiple games match one series", () => {
     const data = createInitialPoolData();
     const matchup = data.matchups.find(
-      (candidate) => candidate.id === "super-florida-texas-tech",
+      (candidate) => candidate.id === "game-1",
     );
 
     expect(matchup).toBeDefined();
 
     data.snapshots = [
       {
-        matchupId: "super-florida-texas-tech",
+        matchupId: "game-1",
         espnGameId: "game-1",
         awayTeamName: "Texas Tech Red Raiders",
-        homeTeamName: "Florida Gators",
+        homeTeamName: "Mississippi State Bulldogs",
         awayAbbreviation: "TTU",
-        homeAbbreviation: "FLA",
+        homeAbbreviation: "MSST",
         awayScore: 10,
         homeScore: 8,
         status: "Final",
@@ -166,12 +166,12 @@ describe("game status display", () => {
         updatedAt: "2026-05-22T00:00:00.000Z",
       },
       {
-        matchupId: "super-florida-texas-tech",
+        matchupId: "game-1",
         espnGameId: "game-2",
         awayTeamName: "Texas Tech Red Raiders",
-        homeTeamName: "Florida Gators",
+        homeTeamName: "Mississippi State Bulldogs",
         awayAbbreviation: "TTU",
-        homeAbbreviation: "FLA",
+        homeAbbreviation: "MSST",
         awayScore: 5,
         homeScore: 2,
         status: "Final",

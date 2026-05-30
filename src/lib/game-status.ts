@@ -33,6 +33,23 @@ export function findMatchupForSnapshot(
   });
 }
 
+export function getGameWinnerTeamId(data: PoolData, matchup: Matchup): string | undefined {
+  const snapshot = getMatchupSnapshot(data, matchup);
+  if (!snapshot || !isFinalSnapshot(snapshot)) return undefined;
+  const winnerNames =
+    snapshot.awayScore > snapshot.homeScore
+      ? [snapshot.awayTeamName, snapshot.awayAbbreviation]
+      : snapshot.homeScore > snapshot.awayScore
+        ? [snapshot.homeTeamName, snapshot.homeAbbreviation]
+        : [];
+  if (winnerNames.length === 0) return undefined;
+
+  return [matchup.teamAId, matchup.teamBId].find((teamId) => {
+    const team = data.teams.find((candidate) => candidate.id === teamId);
+    return team && winnerNames.some((winnerName) => teamNameMatches(team, winnerName));
+  });
+}
+
 export function isLiveSnapshot(snapshot: GameSnapshot | undefined): boolean {
   if (!snapshot) return false;
   if (snapshot.statusState === "in") return true;
@@ -130,6 +147,10 @@ function teamInSnapshot(
   return teamNames.some((teamName) =>
     snapshotNames.some((snapshotName) => namesMatch(teamName, snapshotName)),
   );
+}
+
+function teamNameMatches(team: PoolData["teams"][number], value?: string): boolean {
+  return [team.name, team.shortName, team.abbreviation].some((teamName) => namesMatch(teamName, value));
 }
 
 function namesMatch(a?: string, b?: string): boolean {

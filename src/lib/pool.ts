@@ -9,7 +9,7 @@ import type {
   ScenarioOdd,
   Team,
 } from "./types";
-import { getSeriesWinnerTeamId } from "./game-status";
+import { getGameWinnerTeamId, getSeriesWinnerTeamId } from "./game-status";
 
 const now = new Date().toISOString();
 
@@ -26,50 +26,30 @@ export function getDefaultPayoutRules(places: number): PayoutRule[] {
 
 export function createInitialPoolData(): PoolData {
   const teams: Team[] = [
-    team("alabama", "Alabama Crimson Tide", "Alabama", "ALA", "16", "#9e1b32"),
-    team("lsu", "LSU Tigers", "LSU", "LSU", "9", "#461d7c"),
-    team("arkansas", "Arkansas Razorbacks", "Arkansas", "ARK", "3", "#9d2235"),
-    team("duke", "Duke Blue Devils", "Duke", "DUKE", "14", "#00539b"),
-    team("texas", "Texas Longhorns", "Texas", "TEX", "6", "#bf5700"),
-    team(
-      "arizona-state",
-      "Arizona State Sun Devils",
-      "Arizona State",
-      "ASU",
-      "11",
-      "#8c1d40",
-    ),
-    team("florida", "Florida Gators", "Florida", "FLA", "2", "#0021a5"),
-    team("texas-tech", "Texas Tech Red Raiders", "Texas Tech", "TTU", "15", "#cc0000"),
-    team("oklahoma", "Oklahoma Sooners", "Oklahoma", "OU", "1", "#841617"),
+    team("texas-tech", "Texas Tech Red Raiders", "Texas Tech", "TTU", "3", "#cc0000"),
     team(
       "mississippi-state",
       "Mississippi State Bulldogs",
-      "Mississippi State",
+      "Mississippi St.",
       "MSST",
-      "16",
+      "",
       "#660000",
     ),
-    team("tennessee", "Tennessee Lady Volunteers", "Tennessee", "TENN", "7", "#ff8200"),
-    team("georgia", "Georgia Bulldogs", "Georgia", "UGA", "10", "#ba0c2f"),
-    team("nebraska", "Nebraska Cornhuskers", "Nebraska", "NEB", "4", "#e41c38"),
-    team(
-      "oklahoma-state",
-      "Oklahoma State Cowgirls",
-      "Oklahoma State",
-      "OKST",
-      "13",
-      "#ff7300",
-    ),
-    team("ucla", "UCLA Bruins", "UCLA", "UCLA", "5", "#2774ae"),
-    team("ucf", "UCF Knights", "UCF", "UCF", "12", "#ba9b37"),
+    team("tennessee", "Tennessee Lady Volunteers", "Tennessee", "TENN", "2", "#ff8200"),
+    team("texas", "Texas Longhorns", "Texas", "TEX", "1", "#bf5700"),
+    team("alabama", "Alabama Crimson Tide", "Alabama", "ALA", "1", "#9e1b32"),
+    team("ucla", "UCLA Bruins", "UCLA", "UCLA", "2", "#2774ae"),
+    team("arkansas", "Arkansas Razorbacks", "Arkansas", "ARK", "2", "#9d2235"),
+    team("nebraska", "Nebraska Cornhuskers", "Nebraska", "NEB", "1", "#e41c38"),
   ];
 
   const rounds: Round[] = [
-    round("super-regionals", "Super Regionals", 1),
-    round("wcws-semis", "WCWS Semifinals", 2),
-    round("championship-matchup", "Championship Matchup", 4),
-    round("champion", "National Champion", 8),
+    round("winners-first", "Winners' Bracket Opening Round", 1),
+    round("elimination-first", "Elimination Bracket Opening Round", 2),
+    round("winners-second", "Winners' Bracket Semifinals", 3),
+    round("elimination-second", "Elimination Bracket Semifinals", 4),
+    round("bracket-finals", "Bracket Finals Advancer", 5),
+    round("champion", "National Champion", 6),
   ];
 
   return {
@@ -83,60 +63,19 @@ export function createInitialPoolData(): PoolData {
     teams,
     rounds,
     matchups: [
-      matchup("super-alabama-lsu", "super-regionals", "Alabama vs LSU", "alabama", "lsu", 1),
-      matchup("super-arkansas-duke", "super-regionals", "Arkansas vs Duke", "arkansas", "duke", 2),
-      matchup(
-        "super-texas-arizona-state",
-        "super-regionals",
-        "Texas vs Arizona State",
-        "texas",
-        "arizona-state",
-        3,
-      ),
-      matchup(
-        "super-florida-texas-tech",
-        "super-regionals",
-        "Florida vs Texas Tech",
-        "florida",
-        "texas-tech",
-        4,
-      ),
-      matchup(
-        "super-oklahoma-mississippi-state",
-        "super-regionals",
-        "Oklahoma vs Mississippi State",
-        "oklahoma",
-        "mississippi-state",
-        5,
-      ),
-      matchup(
-        "super-tennessee-georgia",
-        "super-regionals",
-        "Tennessee vs Georgia",
-        "tennessee",
-        "georgia",
-        6,
-      ),
-      matchup(
-        "super-nebraska-oklahoma-state",
-        "super-regionals",
-        "Nebraska vs Oklahoma State",
-        "nebraska",
-        "oklahoma-state",
-        7,
-      ),
-      matchup("super-ucla-ucf", "super-regionals", "UCLA vs UCF", "ucla", "ucf", 8),
-      matchup("wcws-semi-1", "wcws-semis", "WCWS semifinal pick 1", undefined, undefined, 9),
-      matchup("wcws-semi-2", "wcws-semis", "WCWS semifinal pick 2", undefined, undefined, 10),
-      matchup(
-        "championship-matchup",
-        "championship-matchup",
-        "Championship matchup",
-        undefined,
-        undefined,
-        11,
-      ),
-      matchup("champion", "champion", "National champion", undefined, undefined, 12),
+      matchup("game-1", "winners-first", "Game 1: Texas Tech vs Mississippi St.", "texas-tech", "mississippi-state", 1),
+      matchup("game-2", "winners-first", "Game 2: Tennessee vs Texas", "tennessee", "texas", 2),
+      matchup("game-3", "winners-first", "Game 3: Alabama vs UCLA", "alabama", "ucla", 3),
+      matchup("game-4", "winners-first", "Game 4: Arkansas vs Nebraska", "arkansas", "nebraska", 4),
+      matchup("game-5", "elimination-first", "Game 5: Loser Game 1 vs Loser Game 2", undefined, undefined, 5),
+      matchup("game-6", "elimination-first", "Game 6: Loser Game 3 vs Loser Game 4", undefined, undefined, 6),
+      matchup("game-7", "winners-second", "Game 7: Winner Game 1 vs Winner Game 2", undefined, undefined, 7),
+      matchup("game-8", "winners-second", "Game 8: Winner Game 3 vs Winner Game 4", undefined, undefined, 8),
+      matchup("game-9", "elimination-second", "Game 9: Winner Game 5 vs Loser Game 8", undefined, undefined, 9),
+      matchup("game-10", "elimination-second", "Game 10: Winner Game 6 vs Loser Game 7", undefined, undefined, 10),
+      matchup("bracket-1-final", "bracket-finals", "Bracket 1 Final: Championship Series Advancer", undefined, undefined, 11),
+      matchup("bracket-2-final", "bracket-finals", "Bracket 2 Final: Championship Series Advancer", undefined, undefined, 12),
+      matchup("champion", "champion", "National Champion", undefined, undefined, 13),
     ],
     entrants: [
       {
@@ -146,18 +85,19 @@ export function createInitialPoolData(): PoolData {
         venmo: "@sample-leader",
         tiebreakerRuns: 24,
         picks: {
-          "super-alabama-lsu": "lsu",
-          "super-arkansas-duke": "duke",
-          "super-texas-arizona-state": "texas",
-          "super-florida-texas-tech": "florida",
-          "super-oklahoma-mississippi-state": "oklahoma",
-          "super-tennessee-georgia": "tennessee",
-          "super-nebraska-oklahoma-state": "nebraska",
-          "super-ucla-ucf": "ucla",
-          "wcws-semi-1": "oklahoma",
-          "wcws-semi-2": "tennessee",
-          "championship-matchup": "oklahoma",
-          champion: "oklahoma",
+          "game-1": "texas-tech",
+          "game-2": "texas",
+          "game-3": "alabama",
+          "game-4": "nebraska",
+          "game-5": "texas",
+          "game-6": "ucla",
+          "game-7": "texas",
+          "game-8": "ucla",
+          "game-9": "texas",
+          "game-10": "ucla",
+          "bracket-1-final": "texas",
+          "bracket-2-final": "ucla",
+          champion: "texas",
         },
       },
       {
@@ -167,18 +107,19 @@ export function createInitialPoolData(): PoolData {
         zelle: "sample@example.com",
         tiebreakerRuns: 19,
         picks: {
-          "super-alabama-lsu": "alabama",
-          "super-arkansas-duke": "arkansas",
-          "super-texas-arizona-state": "arizona-state",
-          "super-florida-texas-tech": "texas-tech",
-          "super-oklahoma-mississippi-state": "mississippi-state",
-          "super-tennessee-georgia": "georgia",
-          "super-nebraska-oklahoma-state": "oklahoma-state",
-          "super-ucla-ucf": "ucf",
-          "wcws-semi-1": "texas-tech",
-          "wcws-semi-2": "georgia",
-          "championship-matchup": "georgia",
-          champion: "georgia",
+          "game-1": "mississippi-state",
+          "game-2": "tennessee",
+          "game-3": "ucla",
+          "game-4": "arkansas",
+          "game-5": "tennessee",
+          "game-6": "arkansas",
+          "game-7": "tennessee",
+          "game-8": "arkansas",
+          "game-9": "tennessee",
+          "game-10": "arkansas",
+          "bracket-1-final": "tennessee",
+          "bracket-2-final": "arkansas",
+          champion: "tennessee",
         },
       },
     ],
@@ -291,10 +232,15 @@ export function getRound(data: PoolData, roundId: RoundId): Round {
 export function isTeamAlive(teamId: string, matchups: Matchup[]): boolean {
   return !matchups.some(
     (matchup) =>
+      isEliminationLossRound(matchup.roundId) &&
       (matchup.teamAId === teamId || matchup.teamBId === teamId) &&
       matchup.winnerTeamId &&
       matchup.winnerTeamId !== teamId,
   );
+}
+
+function isEliminationLossRound(roundId: RoundId): boolean {
+  return !["winners-first", "winners-second"].includes(roundId);
 }
 
 export function isRoundLocked(round: Round, at: Date = new Date()): boolean {
@@ -307,7 +253,11 @@ export function isRoundLocked(round: Round, at: Date = new Date()): boolean {
 function matchupsWithSeriesWinners(data: PoolData): Matchup[] {
   return data.matchups.map((matchup) => ({
     ...matchup,
-    winnerTeamId: matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup),
+    winnerTeamId:
+      matchup.winnerTeamId ??
+      (matchup.roundId === "bracket-finals" || matchup.roundId === "champion"
+        ? getSeriesWinnerTeamId(data, matchup)
+        : getGameWinnerTeamId(data, matchup)),
   }));
 }
 

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
-import { Shield, Trophy, Users } from "lucide-react";
+import { ClipboardPenLine, Shield, Trophy, Users } from "lucide-react";
 import { PwaRegister } from "@/components/pwa-register";
 import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
@@ -51,6 +51,10 @@ export default function RootLayout({
             <Link href="/">
               <Trophy size={17} />
               Dashboard
+            </Link>
+            <Link href="/entry">
+              <ClipboardPenLine size={17} />
+              Enter Picks
             </Link>
             <Link href="/entrants">
               <Users size={17} />

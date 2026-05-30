@@ -17,16 +17,14 @@ export function normalizeNcaaBracketSnapshots(payload: unknown, data: PoolData):
     .filter((game) => isSuperRegionalGame(game) && asArray(game.teams).length >= 2);
   const snapshots: GameSnapshot[] = [];
 
-  data.matchups
-    .filter((matchup) => matchup.roundId === "super-regionals")
-    .forEach((matchup) => {
-      const matchupGames = games.filter((game) => ncaaGameMatchesMatchup(data, matchup, game));
-      const seriesSummary = getSeriesSummary(data, matchup, matchupGames);
+  data.matchups.forEach((matchup) => {
+    const matchupGames = games.filter((game) => ncaaGameMatchesMatchup(data, matchup, game));
+    const seriesSummary = getSeriesSummary(data, matchup, matchupGames);
 
-      matchupGames.forEach((game) => {
-        snapshots.push(normalizeNcaaGame(game, matchup, seriesSummary));
-      });
+    matchupGames.forEach((game) => {
+      snapshots.push(normalizeNcaaGame(game, matchup, seriesSummary));
     });
+  });
 
   return snapshots;
 }
@@ -134,7 +132,7 @@ function ncaaTeamMatchesTeam(ncaaTeam: AnyRecord, team: Team): boolean {
 
 function isSuperRegionalGame(game: AnyRecord): boolean {
   const sectionId = numberValue(game.sectionId);
-  return sectionId >= 201 && sectionId <= 208;
+  return sectionId === 0 || (sectionId >= 201 && sectionId <= 299);
 }
 
 function isFinalNcaaGame(game: AnyRecord): boolean {

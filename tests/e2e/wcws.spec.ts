@@ -95,8 +95,8 @@ test("admin can add an entrant and edit picks", async ({ page }) => {
   await addForm.getByLabel("Name").fill("Taylor Tester");
   await addForm.getByLabel("Tie-breaker runs").fill("21");
   await addForm.getByLabel("Paid").check();
-  await addForm.locator('select[name="pick-super-alabama-lsu"]').selectOption("lsu");
-  await addForm.locator('select[name="pick-super-tennessee-georgia"]').selectOption("tennessee");
+  await addForm.locator('select[name="pick-game-1"]').selectOption("texas-tech");
+  await addForm.locator('select[name="pick-game-2"]').selectOption("tennessee");
   await submitServerAction(page, addForm.getByRole("button", { name: "Add entrant" }));
 
   await expect(page.locator("summary", { hasText: "Taylor Tester" })).toBeVisible();
@@ -112,7 +112,7 @@ test("admin entrant list keeps existing pick forms collapsed until a name is ope
   const entrantAdmin = page.locator("section", { hasText: "Entrants + Picks" });
   const addForm = entrantAdmin.locator("form.entrant-form").first();
   await expect(addForm.getByLabel("Name")).toBeVisible();
-  await expect(addForm.locator('select[name="pick-super-alabama-lsu"]')).toBeVisible();
+  await expect(addForm.locator('select[name="pick-game-1"]')).toBeVisible();
 
   const sampleLeader = entrantAdmin.locator("summary", { hasText: "Sample Leader" });
   const sampleLeaderForm = entrantAdmin.locator(
@@ -123,7 +123,7 @@ test("admin entrant list keeps existing pick forms collapsed until a name is ope
 
   await sampleLeader.click();
   await expect(sampleLeaderForm.getByLabel("Name")).toBeVisible();
-  await expect(sampleLeaderForm.locator('select[name="pick-super-alabama-lsu"]')).toBeVisible();
+  await expect(sampleLeaderForm.locator('select[name="pick-game-1"]')).toBeVisible();
 });
 
 test("admin can change payout setup", async ({ page }) => {
@@ -167,9 +167,9 @@ test("admin matchup editor keeps full winner fields collapsed until a game is op
 
   const matchupAdmin = page.locator("section", { hasText: "Matchups + Winners" });
   const alabamaLsuForm = matchupAdmin.locator(
-    'form.matchup-form:has(input[name="matchupId"][value="super-alabama-lsu"])',
+    'form.matchup-form:has(input[name="matchupId"][value="game-1"])',
   );
-  const alabamaLsuSummary = matchupAdmin.locator("summary", { hasText: "Alabama vs LSU" });
+  const alabamaLsuSummary = matchupAdmin.locator("summary", { hasText: "Game 1" });
   await expect(alabamaLsuSummary).toBeVisible();
   await expect(alabamaLsuForm.getByLabel("Label")).toBeHidden();
 
