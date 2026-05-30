@@ -19,19 +19,19 @@ export async function getPoolData(): Promise<PoolData> {
   const supabase = supabaseConfig();
   if (supabase) {
     const data = await getSupabasePoolData(supabase);
-    return data ?? createInitialPoolData();
+    return normalizePoolData(data ?? createInitialPoolData());
   }
 
   if (blobConfigured()) {
     const data = await getBlobPoolData();
-    return data ?? createInitialPoolData();
+    return normalizePoolData(data ?? createInitialPoolData());
   }
 
   try {
     const raw = await readFile(dataFile, "utf8");
-    return JSON.parse(raw) as PoolData;
+    return normalizePoolData(JSON.parse(raw) as PoolData);
   } catch {
-    return createInitialPoolData();
+    return normalizePoolData(createInitialPoolData());
   }
 }
 
@@ -120,6 +120,27 @@ async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
   return Array.from(byGameId.values());
 }
 
+
+function normalizePoolData(data: PoolData): PoolData {
+  if (data.matchups.some((matchup) => matchup.id === "game-1")) return data;
+
+  const wcws = createInitialPoolData();
+  return {
+    ...data,
+    teams: wcws.teams,
+    rounds: wcws.rounds,
+    matchups: wcws.matchups,
+    entrants: data.entrants.map((entrant) => ({
+      ...entrant,
+      picks: Object.fromEntries(
+        Object.entries(entrant.picks).filter(([matchupId]) =>
+          wcws.matchups.some((matchup) => matchup.id === matchupId),
+        ),
+      ),
+    })),
+  };
+}
+
 type SupabaseConfig = {
   id: string;
   key: string;
@@ -198,7 +219,7 @@ async function getBlobPoolData(): Promise<PoolData | undefined> {
     const result = await get(blobPath, { access: "private" });
     if (!result || result.statusCode !== 200) return undefined;
     const raw = await new Response(result.stream).text();
-    return JSON.parse(raw) as PoolData;
+    return normalizePoolData(JSON.parse(raw) as PoolData);
   } catch (error) {
     if (error instanceof BlobNotFoundError) return undefined;
     throw error;

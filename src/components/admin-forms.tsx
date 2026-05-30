@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import {
   deleteEntrant,
@@ -116,7 +117,8 @@ export function RoundAutoForm({ round }: { round: Round }) {
 }
 
 export function MatchupAutoForm({ data, matchup }: { data: PoolData; matchup: Matchup }) {
-  const teams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
+  const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
+  const winnerChoices = matchupTeams.length > 0 ? matchupTeams : data.teams;
   return (
     <AutoSaveForm action={saveMatchup} className="admin-row-form matchup-form">
       <input type="hidden" name="matchupId" value={matchup.id} />
@@ -140,7 +142,7 @@ export function MatchupAutoForm({ data, matchup }: { data: PoolData; matchup: Ma
         Winner
         <select name="winnerTeamId" defaultValue={matchup.winnerTeamId ?? ""}>
           <option value="">Unresolved</option>
-          {teams.map((team) => (
+          {winnerChoices.map((team) => (
             <option key={team.id} value={team.id}>
               {team.shortName}
             </option>
@@ -207,21 +209,7 @@ export function EntrantAutoForm({
         Notes
         <textarea name="notes" rows={2} defaultValue={entrant.notes ?? ""} />
       </label>
-      <div className="pick-admin-list">
-        {data.matchups
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((matchup) => (
-            <label key={matchup.id}>
-              {matchup.label}
-              <PickSelect
-                data={data}
-                matchup={matchup}
-                name={`pick-${matchup.id}`}
-                defaultValue={entrant.picks[matchup.id]}
-              />
-            </label>
-          ))}
-      </div>
+      <PickEditorGrid data={data} picks={entrant.picks} />
       <div className="form-actions">
         <button className="button button-primary" type="submit">
           Save entrant
@@ -270,20 +258,71 @@ export function AddEntrantForm({ data }: { data: PoolData }) {
         Notes
         <textarea name="notes" rows={2} />
       </label>
-      <div className="pick-admin-list">
-        {data.matchups
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((matchup) => (
-            <label key={matchup.id}>
-              {matchup.label}
-              <PickSelect data={data} matchup={matchup} name={`pick-${matchup.id}`} />
-            </label>
-          ))}
-      </div>
+      <PickEditorGrid data={data} />
       <div className="form-actions">
         <button className="button button-primary" type="submit">
           Add entrant
         </button>
+      </div>
+    </AutoSaveForm>
+  );
+}
+
+
+export function AdminEntrantBracketForm({
+  data,
+  entrant,
+}: {
+  data: PoolData;
+  entrant: Entrant;
+}) {
+  return (
+    <AutoSaveForm action={saveEntrant} className="admin-form visual-pick-form" autoSave={false}>
+      <input type="hidden" name="entrantId" value={entrant.id} />
+      <div className="two-col">
+        <label>
+          Name
+          <input name="name" defaultValue={entrant.name} required />
+        </label>
+        <label>
+          Tie-breaker runs
+          <input
+            name="tiebreakerRuns"
+            type="number"
+            min="0"
+            defaultValue={entrant.tiebreakerRuns}
+          />
+        </label>
+      </div>
+      <div className="two-col">
+        <label>
+          Venmo
+          <input name="venmo" defaultValue={entrant.venmo ?? ""} placeholder="@handle" />
+        </label>
+        <label>
+          Zelle
+          <input name="zelle" defaultValue={entrant.zelle ?? ""} placeholder="email or phone" />
+        </label>
+      </div>
+      <div className="two-col">
+        <label>
+          Notes
+          <textarea name="notes" rows={2} defaultValue={entrant.notes ?? ""} />
+        </label>
+        <label className="checkbox-label checkbox-block">
+          <input name="paid" type="checkbox" defaultChecked={entrant.paid} />
+          Paid
+        </label>
+      </div>
+      <PickEditorGrid data={data} picks={entrant.picks} />
+      <div className="form-actions">
+        <button className="button button-primary" type="submit">
+          Save bracket picks
+        </button>
+        <Link className="button button-secondary" href="/admin">
+          Back to admin
+        </Link>
+        <DeleteEntrantButton entrantId={entrant.id} entrantName={entrant.name} />
       </div>
     </AutoSaveForm>
   );
@@ -339,6 +378,44 @@ function TeamSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+
+function PickEditorGrid({ data, picks = {} }: { data: PoolData; picks?: Record<string, string> }) {
+  const groups = [
+    { title: "Bracket 1", ids: ["game-1", "game-2", "game-5", "game-7", "game-9", "bracket-1-final"] },
+    { title: "Bracket 2", ids: ["game-3", "game-4", "game-6", "game-8", "game-10", "bracket-2-final"] },
+    { title: "WCWS Finals", ids: ["champion"] },
+  ];
+
+  return (
+    <div className="visual-pick-grid">
+      {groups.map((group) => (
+        <section key={group.title} className="visual-pick-section">
+          <h3>{group.title}</h3>
+          {group.ids.map((matchupId) => {
+            const matchup = data.matchups.find((candidate) => candidate.id === matchupId);
+            if (!matchup) return null;
+            const round = data.rounds.find((candidate) => candidate.id === matchup.roundId);
+            return (
+              <label key={matchup.id} className="visual-pick-card">
+                <span>
+                  {round?.points ?? 0} pts <small>{matchup.id.replace("game-", "Game ")}</small>
+                </span>
+                <strong>{matchup.label}</strong>
+                <PickSelect
+                  data={data}
+                  matchup={matchup}
+                  name={`pick-${matchup.id}`}
+                  defaultValue={picks[matchup.id]}
+                />
+              </label>
+            );
+          })}
+        </section>
+      ))}
+    </div>
   );
 }
 

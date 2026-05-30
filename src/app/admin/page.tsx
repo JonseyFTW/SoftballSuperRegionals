@@ -1,4 +1,5 @@
 import { RefreshCw } from "lucide-react";
+import Link from "next/link";
 import { logoutAdmin, syncEspn } from "@/app/actions";
 import {
   AddEntrantForm,
@@ -130,6 +131,9 @@ function EntrantsSection({ data }: { data: PoolData }) {
                   {entrant.paid ? "Paid" : "Unpaid"} - {Object.keys(entrant.picks).length} picks
                 </small>
               </summary>
+              <Link className="button button-secondary admin-entrant-edit-link" href={`/admin/entrants/${entrant.id}`}>
+                Open visual pick editor
+              </Link>
               <EntrantAutoForm data={data} entrant={entrant} />
             </details>
           ))}

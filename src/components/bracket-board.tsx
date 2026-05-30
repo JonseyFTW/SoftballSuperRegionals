@@ -1,5 +1,10 @@
 import { CheckCircle2, Circle, Trophy } from "lucide-react";
-import { getSeriesWinnerTeamId } from "@/lib/game-status";
+import {
+  getFinalScoreText,
+  getGameWinnerTeamId,
+  getMatchupSnapshot,
+  getSeriesWinnerTeamId,
+} from "@/lib/game-status";
 import { getRound, getTeam } from "@/lib/pool";
 import type { Entrant, Matchup, PoolData, Team } from "@/lib/types";
 
@@ -19,6 +24,57 @@ const bracketTwo = {
   winners: "game-8",
   eliminationSecond: "game-10",
   final: "bracket-2-final",
+};
+
+type SlotSource = {
+  matchupId: string;
+  outcome: "winner" | "loser";
+  fallback: string;
+};
+
+type Slot = {
+  team?: Team;
+  fallback: string;
+  score?: number;
+};
+
+const slotSources: Record<string, [SlotSource, SlotSource]> = {
+  "game-5": [
+    { matchupId: "game-1", outcome: "loser", fallback: "Loser Game 1" },
+    { matchupId: "game-2", outcome: "loser", fallback: "Loser Game 2" },
+  ],
+  "game-6": [
+    { matchupId: "game-3", outcome: "loser", fallback: "Loser Game 3" },
+    { matchupId: "game-4", outcome: "loser", fallback: "Loser Game 4" },
+  ],
+  "game-7": [
+    { matchupId: "game-1", outcome: "winner", fallback: "Winner Game 1" },
+    { matchupId: "game-2", outcome: "winner", fallback: "Winner Game 2" },
+  ],
+  "game-8": [
+    { matchupId: "game-3", outcome: "winner", fallback: "Winner Game 3" },
+    { matchupId: "game-4", outcome: "winner", fallback: "Winner Game 4" },
+  ],
+  "game-9": [
+    { matchupId: "game-5", outcome: "winner", fallback: "Winner Game 5" },
+    { matchupId: "game-8", outcome: "loser", fallback: "Loser Game 8" },
+  ],
+  "game-10": [
+    { matchupId: "game-6", outcome: "winner", fallback: "Winner Game 6" },
+    { matchupId: "game-7", outcome: "loser", fallback: "Loser Game 7" },
+  ],
+  "bracket-1-final": [
+    { matchupId: "game-7", outcome: "winner", fallback: "Winner Game 7" },
+    { matchupId: "game-9", outcome: "winner", fallback: "Winner Game 9" },
+  ],
+  "bracket-2-final": [
+    { matchupId: "game-8", outcome: "winner", fallback: "Winner Game 8" },
+    { matchupId: "game-10", outcome: "winner", fallback: "Winner Game 10" },
+  ],
+  champion: [
+    { matchupId: "bracket-1-final", outcome: "winner", fallback: "Bracket 1 Winner" },
+    { matchupId: "bracket-2-final", outcome: "winner", fallback: "Bracket 2 Winner" },
+  ],
 };
 
 export function BracketBoard({ data, entrant }: { data: PoolData; entrant?: Entrant }) {
@@ -101,15 +157,16 @@ function MatchupBox({
   matchupId: string;
   compact?: boolean;
 }) {
-  const matchup = data.matchups.find((candidate) => candidate.id === matchupId);
+  const matchup = getMatchup(data, matchupId);
   if (!matchup) return null;
   const round = getRound(data, matchup.roundId);
-  const winner = getTeam(data, matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup));
+  const winnerTeamId = getResolvedWinnerTeamId(data, matchup);
+  const winner = getTeam(data, winnerTeamId);
   const pick = entrant ? getTeam(data, entrant.picks[matchup.id]) : undefined;
-  const selected = pick ?? winner;
+  const slots = getDisplaySlots(data, matchup);
   const isCorrect = Boolean(entrant && pick && winner && pick.id === winner.id);
   const isWrong = Boolean(entrant && pick && winner && pick.id !== winner.id);
-  const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
+  const scoreText = getFinalScoreText(getMatchupSnapshot(data, matchup));
 
   return (
     <article className={`bracket-matchup${compact ? " compact" : ""}${isCorrect ? " correct" : ""}${isWrong ? " wrong" : ""}`}>
@@ -117,11 +174,28 @@ function MatchupBox({
         <span>{round.points} pts</span>
         <small>{labelFor(matchup)}</small>
       </header>
-      {entrant || winner || matchupTeams.length === 0 ? (
-        <TeamLine team={selected} fallback={entrant ? "No pick" : "TBD"} champion={matchup.id === "champion"} />
-      ) : (
-        matchupTeams.map((team) => <TeamLine key={team.id} team={team} />)
-      )}
+      <div className="bracket-team-stack">
+        {entrant ? (
+          <TeamLine
+            team={pick}
+            fallback="No pick"
+            champion={matchup.id === "champion"}
+            isWinner={Boolean(pick && winner && pick.id === winner.id)}
+          />
+        ) : (
+          slots.map((slot, index) => (
+            <TeamLine
+              key={`${matchup.id}-${slot.team?.id ?? slot.fallback}-${index}`}
+              team={slot.team}
+              fallback={slot.fallback}
+              score={slot.score}
+              champion={matchup.id === "champion" && Boolean(slot.team)}
+              isWinner={Boolean(slot.team && winnerTeamId === slot.team.id)}
+            />
+          ))
+        )}
+      </div>
+      {scoreText ? <p className="bracket-scoreline">{scoreText}</p> : null}
       {entrant ? (
         <div className="pick-outcome">
           {isCorrect ? <CheckCircle2 size={15} /> : <Circle size={15} />}
@@ -132,13 +206,90 @@ function MatchupBox({
   );
 }
 
-function TeamLine({ team, fallback = "TBD", champion = false }: { team?: Team; fallback?: string; champion?: boolean }) {
+function TeamLine({
+  team,
+  fallback = "TBD",
+  champion = false,
+  score,
+  isWinner = false,
+}: {
+  team?: Team;
+  fallback?: string;
+  champion?: boolean;
+  score?: number;
+  isWinner?: boolean;
+}) {
   return (
-    <div className="bracket-team-line">
+    <div className={`bracket-team-line${isWinner ? " winner" : ""}`}>
       {champion ? <Trophy size={15} /> : <span className="team-seed">{team?.seed || ""}</span>}
       <strong>{team?.shortName ?? fallback}</strong>
+      {typeof score === "number" ? <b>{score}</b> : null}
     </div>
   );
+}
+
+function getDisplaySlots(data: PoolData, matchup: Matchup): Slot[] {
+  const explicitTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)];
+  const explicitSlots = explicitTeams
+    .filter((team): team is Team => Boolean(team))
+    .map((team) => ({ team, fallback: team.shortName, score: getScoreForTeam(data, matchup, team) }));
+  if (explicitSlots.length > 0) return padSlots(explicitSlots, matchup);
+
+  const sources = slotSources[matchup.id];
+  if (!sources) return [{ fallback: "TBD" }, { fallback: "TBD" }];
+
+  return sources.map((source) => {
+    const teamId = getSourceTeamId(data, source);
+    const team = getTeam(data, teamId);
+    return { team, fallback: team?.shortName ?? source.fallback };
+  });
+}
+
+function padSlots(slots: Slot[], matchup: Matchup): Slot[] {
+  if (slots.length >= 2 || matchup.id === "champion") return slots;
+  return [...slots, { fallback: "TBD" }];
+}
+
+function getSourceTeamId(data: PoolData, source: SlotSource): string | undefined {
+  const matchup = getMatchup(data, source.matchupId);
+  if (!matchup) return undefined;
+  const winnerTeamId = getResolvedWinnerTeamId(data, matchup);
+  if (source.outcome === "winner") return winnerTeamId;
+  if (!winnerTeamId) return undefined;
+  return getDisplaySlots(data, matchup)
+    .map((slot) => slot.team?.id)
+    .find((teamId) => teamId && teamId !== winnerTeamId);
+}
+
+function getResolvedWinnerTeamId(data: PoolData, matchup: Matchup): string | undefined {
+  return (
+    matchup.winnerTeamId ??
+    (matchup.roundId === "bracket-finals" || matchup.roundId === "champion"
+      ? getSeriesWinnerTeamId(data, matchup)
+      : getGameWinnerTeamId(data, matchup))
+  );
+}
+
+function getScoreForTeam(data: PoolData, matchup: Matchup, team: Team): number | undefined {
+  const snapshot = getMatchupSnapshot(data, matchup);
+  if (!snapshot) return undefined;
+  if (snapshotTeamMatches(team, snapshot.awayTeamName, snapshot.awayAbbreviation)) {
+    return snapshot.awayScore;
+  }
+  if (snapshotTeamMatches(team, snapshot.homeTeamName, snapshot.homeAbbreviation)) {
+    return snapshot.homeScore;
+  }
+  return undefined;
+}
+
+function snapshotTeamMatches(team: Team, ...names: (string | undefined)[]): boolean {
+  return [team.name, team.shortName, team.abbreviation].some((teamName) =>
+    names.some((name) => namesMatch(teamName, name)),
+  );
+}
+
+function getMatchup(data: PoolData, matchupId: string): Matchup | undefined {
+  return data.matchups.find((candidate) => candidate.id === matchupId);
 }
 
 function labelFor(matchup: Matchup): string {
@@ -148,6 +299,13 @@ function labelFor(matchup: Matchup): string {
   return matchup.id.replace("game-", "Game ");
 }
 
-function isTeam(team: Team | undefined): team is Team {
-  return Boolean(team);
+function namesMatch(a?: string, b?: string): boolean {
+  const left = normalizeName(a);
+  const right = normalizeName(b);
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function normalizeName(value?: string): string {
+  return value?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? "";
 }

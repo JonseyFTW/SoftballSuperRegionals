@@ -44,7 +44,14 @@ export function getGameWinnerTeamId(data: PoolData, matchup: Matchup): string | 
         : [];
   if (winnerNames.length === 0) return undefined;
 
-  return [matchup.teamAId, matchup.teamBId].find((teamId) => {
+  const candidateTeamIds = [matchup.teamAId, matchup.teamBId].filter(
+    (teamId): teamId is string => Boolean(teamId),
+  );
+  const searchableTeamIds = candidateTeamIds.length
+    ? candidateTeamIds
+    : data.teams.map((team) => team.id);
+
+  return searchableTeamIds.find((teamId) => {
     const team = data.teams.find((candidate) => candidate.id === teamId);
     return team && winnerNames.some((winnerName) => teamNameMatches(team, winnerName));
   });
