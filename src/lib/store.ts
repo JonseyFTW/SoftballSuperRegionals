@@ -6,6 +6,7 @@ import {
   fetchEspnHeaderSnapshots,
   fetchEspnScoreboardSnapshots,
 } from "./espn";
+import { resolveBracket } from "./bracket";
 import { findMatchupForSnapshot } from "./game-status";
 import { fetchNcaaBracketSnapshots } from "./ncaa";
 import { createInitialPoolData } from "./pool";
@@ -65,9 +66,9 @@ export async function getPoolDataWithLiveSnapshots(): Promise<PoolData> {
   const data = await getPoolData();
   try {
     const snapshots = await fetchLiveSnapshots(data);
-    return { ...data, snapshots };
+    return resolveBracket({ ...data, snapshots });
   } catch {
-    return data;
+    return resolveBracket(data);
   }
 }
 
@@ -78,7 +79,8 @@ export async function syncLiveSnapshots(): Promise<GameSnapshot[]> {
   return snapshots;
 }
 
-async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
+async function fetchLiveSnapshots(rawData: PoolData): Promise<GameSnapshot[]> {
+  const data = resolveBracket(rawData);
   const [headerResult, scoreboardResult, ncaaResult] = await Promise.allSettled([
     fetchEspnHeaderSnapshots(),
     fetchEspnScoreboardSnapshots(),
