@@ -1,4 +1,5 @@
 export type RoundId =
+  | "super-regionals"
   | "winners-first"
   | "elimination-first"
   | "winners-second"

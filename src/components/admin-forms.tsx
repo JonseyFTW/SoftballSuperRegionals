@@ -118,7 +118,18 @@ export function RoundAutoForm({ round }: { round: Round }) {
 
 export function MatchupAutoForm({ data, matchup }: { data: PoolData; matchup: Matchup }) {
   const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
-  const winnerChoices = matchupTeams.length > 0 ? matchupTeams : data.teams;
+  const wcwsTeamIds = new Set([
+    "texas-tech",
+    "mississippi-state",
+    "tennessee",
+    "texas",
+    "alabama",
+    "ucla",
+    "arkansas",
+    "nebraska",
+  ]);
+  const wcwsTeams = data.teams.filter((team) => wcwsTeamIds.has(team.id));
+  const winnerChoices = matchupTeams.length > 0 ? matchupTeams : wcwsTeams;
   return (
     <AutoSaveForm action={saveMatchup} className="admin-row-form matchup-form">
       <input type="hidden" name="matchupId" value={matchup.id} />
@@ -431,7 +442,18 @@ function PickSelect({
   defaultValue?: string;
 }) {
   const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
-  const choices = matchupTeams.length > 0 ? matchupTeams : data.teams;
+  const wcwsTeamIds = new Set([
+    "texas-tech",
+    "mississippi-state",
+    "tennessee",
+    "texas",
+    "alabama",
+    "ucla",
+    "arkansas",
+    "nebraska",
+  ]);
+  const wcwsTeams = data.teams.filter((team) => wcwsTeamIds.has(team.id));
+  const choices = matchupTeams.length > 0 ? matchupTeams : wcwsTeams;
 
   return (
     <select name={name} defaultValue={defaultValue ?? ""}>

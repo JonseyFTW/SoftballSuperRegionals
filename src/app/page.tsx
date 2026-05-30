@@ -23,11 +23,13 @@ export default async function Home() {
   const payout = calculatePayouts(data);
   const odds = calculateScenarioOdds(data);
   const paidCount = data.entrants.filter((entrant) => entrant.paid).length;
-  const superRegionals = [...data.matchups].sort((a, b) => a.sortOrder - b.sortOrder);
-  const liveMatchups = superRegionals.filter((matchup) =>
+  const wcwsMatchups = data.matchups
+    .filter((matchup) => matchup.roundId !== "super-regionals")
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+  const liveMatchups = wcwsMatchups.filter((matchup) =>
     isLiveSnapshot(getMatchupSnapshot(data, matchup)),
   );
-  const inactiveMatchups = superRegionals.filter(
+  const inactiveMatchups = wcwsMatchups.filter(
     (matchup) => !isLiveSnapshot(getMatchupSnapshot(data, matchup)),
   );
 

@@ -182,7 +182,21 @@ function namesMatch(a?: string, b?: string): boolean {
   const left = normalizeName(a);
   const right = normalizeName(b);
   if (!left || !right) return false;
-  return left === right || left.includes(right) || right.includes(left);
+  if (left === right) return true;
+
+  const leftTokens = tokenizeName(a);
+  const rightTokens = tokenizeName(b);
+  if (leftTokens.length > 1 || rightTokens.length > 1) {
+    const shorter = left.length <= right.length ? left : right;
+    const longer = left.length > right.length ? left : right;
+    return shorter.length >= 8 && longer.includes(shorter);
+  }
+
+  return false;
+}
+
+function tokenizeName(value?: string): string[] {
+  return value?.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
 function normalizeName(value?: string): string {

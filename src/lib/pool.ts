@@ -255,7 +255,7 @@ function matchupsWithSeriesWinners(data: PoolData): Matchup[] {
     ...matchup,
     winnerTeamId:
       matchup.winnerTeamId ??
-      (matchup.roundId === "bracket-finals" || matchup.roundId === "champion"
+      (["super-regionals", "bracket-finals", "champion"].includes(matchup.roundId)
         ? getSeriesWinnerTeamId(data, matchup)
         : getGameWinnerTeamId(data, matchup)),
   }));

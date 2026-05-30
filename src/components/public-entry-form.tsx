@@ -65,7 +65,18 @@ export function PublicEntryForm({ data }: { data: PoolData }) {
 
 function PickSelect({ data, matchup, name }: { data: PoolData; matchup: Matchup; name: string }) {
   const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
-  const choices = matchupTeams.length > 0 ? matchupTeams : data.teams;
+  const wcwsTeamIds = new Set([
+    "texas-tech",
+    "mississippi-state",
+    "tennessee",
+    "texas",
+    "alabama",
+    "ucla",
+    "arkansas",
+    "nebraska",
+  ]);
+  const wcwsTeams = data.teams.filter((team) => wcwsTeamIds.has(team.id));
+  const choices = matchupTeams.length > 0 ? matchupTeams : wcwsTeams;
 
   return (
     <select name={name} required defaultValue="">
