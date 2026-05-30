@@ -9,7 +9,7 @@ import {
 import { findMatchupForSnapshot } from "./game-status";
 import { fetchNcaaBracketSnapshots } from "./ncaa";
 import { createInitialPoolData } from "./pool";
-import type { GameSnapshot, PoolData } from "./types";
+import type { GameSnapshot, Matchup, PoolData, Round, Team } from "./types";
 
 const dataFile = poolDataFile();
 const defaultPoolId = "default";
@@ -19,19 +19,19 @@ export async function getPoolData(): Promise<PoolData> {
   const supabase = supabaseConfig();
   if (supabase) {
     const data = await getSupabasePoolData(supabase);
-    return data ?? createInitialPoolData();
+    return normalizePoolData(data ?? createInitialPoolData());
   }
 
   if (blobConfigured()) {
     const data = await getBlobPoolData();
-    return data ?? createInitialPoolData();
+    return normalizePoolData(data ?? createInitialPoolData());
   }
 
   try {
     const raw = await readFile(dataFile, "utf8");
-    return JSON.parse(raw) as PoolData;
+    return normalizePoolData(JSON.parse(raw) as PoolData);
   } catch {
-    return createInitialPoolData();
+    return normalizePoolData(createInitialPoolData());
   }
 }
 
@@ -120,6 +120,143 @@ async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
   return Array.from(byGameId.values());
 }
 
+
+function normalizePoolData(data: PoolData): PoolData {
+  const wcws = createInitialPoolData();
+  const hasWcwsBracket = data.matchups.some((matchup) => matchup.id === "game-1");
+  const savedSuperRegionals = data.matchups.filter((matchup) => matchup.roundId === "super-regionals");
+  const entrantHasLegacyPicks = data.entrants.some((entrant) =>
+    Object.keys(entrant.picks).some((matchupId) => matchupId.startsWith("super-")),
+  );
+  const legacySuperRegionals =
+    savedSuperRegionals.length > 0 || entrantHasLegacyPicks ? savedSuperRegionals : [];
+  const superRegionalMatchups =
+    legacySuperRegionals.length > 0
+      ? fillSuperRegionalWinners(legacySuperRegionals)
+      : entrantHasLegacyPicks
+        ? defaultSuperRegionalMatchups()
+        : [];
+
+  if (
+    hasWcwsBracket &&
+    data.rounds.some((round) => round.id === "super-regionals") &&
+    superRegionalMatchups.length === savedSuperRegionals.length
+  ) {
+    return data;
+  }
+
+  if (hasWcwsBracket && superRegionalMatchups.length === 0) return data;
+
+  const legacyRounds = data.rounds.filter((round) => round.id === "super-regionals");
+  const superRegionalRound: Round = legacyRounds[0] ?? {
+    id: "super-regionals",
+    name: "Super Regionals",
+    points: 1,
+    isLocked: true,
+  };
+  const wcwsTeamIds = new Set(wcws.teams.map((team) => team.id));
+  const legacyTeams = mergeTeams([...defaultSuperRegionalTeams(), ...data.teams]).filter(
+    (team) => !wcwsTeamIds.has(team.id),
+  );
+  const wcwsMatchups = hasWcwsBracket
+    ? data.matchups.filter((matchup) => matchup.roundId !== "super-regionals")
+    : wcws.matchups;
+  const migratedMatchups = [...superRegionalMatchups, ...wcwsMatchups];
+  const migratedRounds = hasWcwsBracket
+    ? [superRegionalRound, ...data.rounds.filter((round) => round.id !== "super-regionals")]
+    : [superRegionalRound, ...wcws.rounds];
+
+  return {
+    ...data,
+    teams: mergeTeams([...wcws.teams, ...legacyTeams]),
+    rounds: migratedRounds,
+    matchups: migratedMatchups,
+    entrants: data.entrants.map((entrant) => ({
+      ...entrant,
+      picks: Object.fromEntries(
+        Object.entries(entrant.picks).filter(([matchupId]) =>
+          migratedMatchups.some((matchup) => matchup.id === matchupId),
+        ),
+      ),
+    })),
+  };
+}
+
+function fillSuperRegionalWinners(matchups: Matchup[]): Matchup[] {
+  const defaultWinners = new Map(
+    defaultSuperRegionalMatchups().map((matchup) => [matchup.id, matchup.winnerTeamId]),
+  );
+
+  return matchups.map((matchup) => ({
+    ...matchup,
+    winnerTeamId: matchup.winnerTeamId ?? defaultWinners.get(matchup.id),
+  }));
+}
+
+function defaultSuperRegionalTeams(): Team[] {
+  return [
+    team("alabama", "Alabama Crimson Tide", "Alabama", "ALA", "16", "#9e1b32"),
+    team("lsu", "LSU Tigers", "LSU", "LSU", "9", "#461d7c"),
+    team("arkansas", "Arkansas Razorbacks", "Arkansas", "ARK", "3", "#9d2235"),
+    team("duke", "Duke Blue Devils", "Duke", "DUKE", "14", "#00539b"),
+    team("texas", "Texas Longhorns", "Texas", "TEX", "6", "#bf5700"),
+    team("arizona-state", "Arizona State Sun Devils", "Arizona State", "ASU", "11", "#8c1d40"),
+    team("florida", "Florida Gators", "Florida", "FLA", "2", "#0021a5"),
+    team("texas-tech", "Texas Tech Red Raiders", "Texas Tech", "TTU", "15", "#cc0000"),
+    team("oklahoma", "Oklahoma Sooners", "Oklahoma", "OU", "1", "#841617"),
+    team("mississippi-state", "Mississippi State Bulldogs", "Mississippi State", "MSST", "16", "#660000"),
+    team("tennessee", "Tennessee Lady Volunteers", "Tennessee", "TENN", "7", "#ff8200"),
+    team("georgia", "Georgia Bulldogs", "Georgia", "UGA", "10", "#ba0c2f"),
+    team("nebraska", "Nebraska Cornhuskers", "Nebraska", "NEB", "4", "#e41c38"),
+    team("oklahoma-state", "Oklahoma State Cowgirls", "Oklahoma State", "OKST", "13", "#ff7300"),
+    team("ucla", "UCLA Bruins", "UCLA", "UCLA", "5", "#2774ae"),
+    team("ucf", "UCF Knights", "UCF", "UCF", "12", "#ba9b37"),
+  ];
+}
+
+function defaultSuperRegionalMatchups(): Matchup[] {
+  return [
+    legacyMatchup("super-alabama-lsu", "Alabama vs LSU", "alabama", "lsu", "alabama", 1),
+    legacyMatchup("super-arkansas-duke", "Arkansas vs Duke", "arkansas", "duke", "arkansas", 2),
+    legacyMatchup("super-texas-arizona-state", "Texas vs Arizona State", "texas", "arizona-state", "texas", 3),
+    legacyMatchup("super-florida-texas-tech", "Florida vs Texas Tech", "florida", "texas-tech", "texas-tech", 4),
+    legacyMatchup("super-oklahoma-mississippi-state", "Oklahoma vs Mississippi State", "oklahoma", "mississippi-state", "mississippi-state", 5),
+    legacyMatchup("super-tennessee-georgia", "Tennessee vs Georgia", "tennessee", "georgia", "tennessee", 6),
+    legacyMatchup("super-nebraska-oklahoma-state", "Nebraska vs Oklahoma State", "nebraska", "oklahoma-state", "nebraska", 7),
+    legacyMatchup("super-ucla-ucf", "UCLA vs UCF", "ucla", "ucf", "ucla", 8),
+  ];
+}
+
+function legacyMatchup(
+  id: string,
+  label: string,
+  teamAId: string,
+  teamBId: string,
+  winnerTeamId: string,
+  sortOrder: number,
+): Matchup {
+  return { id, label, teamAId, teamBId, winnerTeamId, sortOrder, roundId: "super-regionals" };
+}
+
+function team(
+  id: string,
+  name: string,
+  shortName: string,
+  abbreviation: string,
+  seed?: string,
+  color?: string,
+): Team {
+  return { id, name, shortName, abbreviation, seed, color };
+}
+
+
+function mergeTeams(teams: Team[]): Team[] {
+  const byId = new Map<string, Team>();
+  teams.forEach((team) => byId.set(team.id, team));
+  return Array.from(byId.values());
+}
+
+
 type SupabaseConfig = {
   id: string;
   key: string;
@@ -198,7 +335,7 @@ async function getBlobPoolData(): Promise<PoolData | undefined> {
     const result = await get(blobPath, { access: "private" });
     if (!result || result.statusCode !== 200) return undefined;
     const raw = await new Response(result.stream).text();
-    return JSON.parse(raw) as PoolData;
+    return normalizePoolData(JSON.parse(raw) as PoolData);
   } catch (error) {
     if (error instanceof BlobNotFoundError) return undefined;
     throw error;

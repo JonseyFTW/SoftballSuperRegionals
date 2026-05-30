@@ -1,5 +1,49 @@
 import type { GameSnapshot, Matchup, PoolData } from "./types";
 
+type SlotSource = {
+  matchupId: string;
+  outcome: "winner" | "loser";
+};
+
+const derivedSlotSources: Record<string, [SlotSource, SlotSource]> = {
+  "game-5": [
+    { matchupId: "game-1", outcome: "loser" },
+    { matchupId: "game-2", outcome: "loser" },
+  ],
+  "game-6": [
+    { matchupId: "game-3", outcome: "loser" },
+    { matchupId: "game-4", outcome: "loser" },
+  ],
+  "game-7": [
+    { matchupId: "game-1", outcome: "winner" },
+    { matchupId: "game-2", outcome: "winner" },
+  ],
+  "game-8": [
+    { matchupId: "game-3", outcome: "winner" },
+    { matchupId: "game-4", outcome: "winner" },
+  ],
+  "game-9": [
+    { matchupId: "game-5", outcome: "winner" },
+    { matchupId: "game-8", outcome: "loser" },
+  ],
+  "game-10": [
+    { matchupId: "game-6", outcome: "winner" },
+    { matchupId: "game-7", outcome: "loser" },
+  ],
+  "bracket-1-final": [
+    { matchupId: "game-7", outcome: "winner" },
+    { matchupId: "game-9", outcome: "winner" },
+  ],
+  "bracket-2-final": [
+    { matchupId: "game-8", outcome: "winner" },
+    { matchupId: "game-10", outcome: "winner" },
+  ],
+  champion: [
+    { matchupId: "bracket-1-final", outcome: "winner" },
+    { matchupId: "bracket-2-final", outcome: "winner" },
+  ],
+};
+
 export function getMatchupSnapshot(data: PoolData, matchup: Matchup): GameSnapshot | undefined {
   const snapshots = data.snapshots.filter((candidate) => snapshotMatchesMatchup(candidate, matchup));
   return snapshots.reduce<GameSnapshot | undefined>(
@@ -25,11 +69,34 @@ export function findMatchupForSnapshot(
   if (exactMatch) return exactMatch;
 
   return data.matchups.find((matchup) => {
-    const teamA = data.teams.find((team) => team.id === matchup.teamAId);
-    const teamB = data.teams.find((team) => team.id === matchup.teamBId);
-    if (!teamA || !teamB) return false;
+    const matchupTeams = getMatchupTeams(data, matchup);
+    if (matchupTeams.length !== 2) return false;
 
-    return teamInSnapshot(teamA, snapshot) && teamInSnapshot(teamB, snapshot);
+    return matchupTeams.every((team) => teamInSnapshot(team, snapshot));
+  });
+}
+
+export function getGameWinnerTeamId(data: PoolData, matchup: Matchup): string | undefined {
+  const snapshot = getMatchupSnapshot(data, matchup);
+  if (!snapshot || !isFinalSnapshot(snapshot)) return undefined;
+  const winnerNames =
+    snapshot.awayScore > snapshot.homeScore
+      ? [snapshot.awayTeamName, snapshot.awayAbbreviation]
+      : snapshot.homeScore > snapshot.awayScore
+        ? [snapshot.homeTeamName, snapshot.homeAbbreviation]
+        : [];
+  if (winnerNames.length === 0) return undefined;
+
+  const candidateTeamIds = [matchup.teamAId, matchup.teamBId].filter(
+    (teamId): teamId is string => Boolean(teamId),
+  );
+  const searchableTeamIds = candidateTeamIds.length
+    ? candidateTeamIds
+    : data.teams.map((team) => team.id);
+
+  return searchableTeamIds.find((teamId) => {
+    const team = data.teams.find((candidate) => candidate.id === teamId);
+    return team && winnerNames.some((winnerName) => teamNameMatches(team, winnerName));
   });
 }
 
@@ -115,6 +182,41 @@ function getSeriesTeam(data: PoolData, matchup: Matchup, teamLabel: string) {
     );
 }
 
+function getMatchupTeams(data: PoolData, matchup: Matchup) {
+  const explicitTeams = [matchup.teamAId, matchup.teamBId]
+    .map((teamId) => data.teams.find((team) => team.id === teamId))
+    .filter((team): team is PoolData["teams"][number] => Boolean(team));
+  if (explicitTeams.length === 2) return explicitTeams;
+
+  const sources = derivedSlotSources[matchup.id];
+  if (!sources) return explicitTeams;
+
+  return sources
+    .map((source) => getSourceTeamId(data, source))
+    .map((teamId) => data.teams.find((team) => team.id === teamId))
+    .filter((team): team is PoolData["teams"][number] => Boolean(team));
+}
+
+function getSourceTeamId(data: PoolData, source: SlotSource): string | undefined {
+  const matchup = data.matchups.find((candidate) => candidate.id === source.matchupId);
+  if (!matchup) return undefined;
+  const winnerTeamId = getKnownWinnerTeamId(data, matchup);
+  if (source.outcome === "winner") return winnerTeamId;
+  if (!winnerTeamId) return undefined;
+  return getMatchupTeams(data, matchup)
+    .map((team) => team.id)
+    .find((teamId) => teamId !== winnerTeamId);
+}
+
+function getKnownWinnerTeamId(data: PoolData, matchup: Matchup): string | undefined {
+  return (
+    matchup.winnerTeamId ??
+    (["super-regionals", "bracket-finals", "champion"].includes(matchup.roundId)
+      ? getSeriesWinnerTeamId(data, matchup)
+      : getGameWinnerTeamId(data, matchup))
+  );
+}
+
 function teamInSnapshot(
   team: PoolData["teams"][number],
   snapshot: GameSnapshot,
@@ -132,11 +234,29 @@ function teamInSnapshot(
   );
 }
 
+function teamNameMatches(team: PoolData["teams"][number], value?: string): boolean {
+  return [team.name, team.shortName, team.abbreviation].some((teamName) => namesMatch(teamName, value));
+}
+
 function namesMatch(a?: string, b?: string): boolean {
   const left = normalizeName(a);
   const right = normalizeName(b);
   if (!left || !right) return false;
-  return left === right || left.includes(right) || right.includes(left);
+  if (left === right) return true;
+
+  const leftTokens = tokenizeName(a);
+  const rightTokens = tokenizeName(b);
+  if (leftTokens.length > 1 || rightTokens.length > 1) {
+    const shorter = left.length <= right.length ? left : right;
+    const longer = left.length > right.length ? left : right;
+    return shorter.length >= 8 && longer.includes(shorter);
+  }
+
+  return false;
+}
+
+function tokenizeName(value?: string): string[] {
+  return value?.toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
 function normalizeName(value?: string): string {

@@ -1,7 +1,10 @@
 export type RoundId =
   | "super-regionals"
-  | "wcws-semis"
-  | "championship-matchup"
+  | "winners-first"
+  | "elimination-first"
+  | "winners-second"
+  | "elimination-second"
+  | "bracket-finals"
   | "champion";
 
 export type Team = {

@@ -1,6 +1,7 @@
 import { DollarSign, Trophy, Users, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { BracketBoard } from "@/components/bracket-board";
 import { GameCard, MatchupRow } from "@/components/game-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { MetricCard } from "@/components/metric-card";
@@ -22,13 +23,13 @@ export default async function Home() {
   const payout = calculatePayouts(data);
   const odds = calculateScenarioOdds(data);
   const paidCount = data.entrants.filter((entrant) => entrant.paid).length;
-  const superRegionals = data.matchups
-    .filter((matchup) => matchup.roundId === "super-regionals")
+  const wcwsMatchups = data.matchups
+    .filter((matchup) => matchup.roundId !== "super-regionals")
     .sort((a, b) => a.sortOrder - b.sortOrder);
-  const liveMatchups = superRegionals.filter((matchup) =>
+  const liveMatchups = wcwsMatchups.filter((matchup) =>
     isLiveSnapshot(getMatchupSnapshot(data, matchup)),
   );
-  const inactiveMatchups = superRegionals.filter(
+  const inactiveMatchups = wcwsMatchups.filter(
     (matchup) => !isLiveSnapshot(getMatchupSnapshot(data, matchup)),
   );
 
@@ -37,15 +38,18 @@ export default async function Home() {
       <AutoRefresh hasLiveGames={liveMatchups.length > 0} />
       <section className="hero-panel">
         <div>
-          <p className="eyebrow">Straight pick&apos;em bracket</p>
+          <p className="eyebrow">Double-elimination pick&apos;em bracket</p>
           <h1>{data.settings.name}</h1>
           <p>
-            Track picks, live super regional scorebugs, possible points left,
+            Track WCWS bracket picks, live scorebugs, possible points left,
             payout math, and who still has a path to the top.
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/entrants">
               View everyone&apos;s picks
+            </Link>
+            <Link className="button button-secondary" href="/entry">
+              Enter your bracket
             </Link>
             <Link className="button button-secondary" href="/admin">
               Admin portal
@@ -110,11 +114,16 @@ export default async function Home() {
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Super Regionals</h2>
-            <p>{liveMatchups.length ? `${liveMatchups.length} live now` : "No live games right now"}</p>
+            <h2>WCWS Bracket</h2>
+            <p>
+              {liveMatchups.length
+                ? `${liveMatchups.length} live now`
+                : "Bracket finals and championship score advancers, not every if-necessary game."}
+            </p>
           </div>
         </div>
-        <div className="scoreboard-stack">
+        <BracketBoard data={data} />
+        <div className="scoreboard-stack live-scoreboard">
           {liveMatchups.length ? (
             <div className="game-grid">
               {liveMatchups.map((matchup) => (

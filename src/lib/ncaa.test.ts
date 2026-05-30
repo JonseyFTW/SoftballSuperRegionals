@@ -3,7 +3,7 @@ import { calculateLeaderboard, createInitialPoolData } from "./pool";
 import { normalizeNcaaBracketSnapshots } from "./ncaa";
 
 describe("NCAA bracket normalization", () => {
-  it("scores a completed super regional series when ESPN no longer has a game ID", () => {
+  it("normalizes completed bracket games when ESPN no longer has a game ID", () => {
     const data = {
       ...createInitialPoolData(),
       entrants: [
@@ -13,16 +13,16 @@ describe("NCAA bracket normalization", () => {
           paid: true,
           tiebreakerRuns: 21,
           picks: {
-            "super-tennessee-georgia": "tennessee",
+            "game-2": "tennessee",
           },
         },
         {
-          id: "entry-georgia",
-          name: "Georgia Pick",
+          id: "entry-texas",
+          name: "Texas Pick",
           paid: true,
           tiebreakerRuns: 18,
           picks: {
-            "super-tennessee-georgia": "georgia",
+            "game-2": "texas",
           },
         },
       ],
@@ -34,7 +34,7 @@ describe("NCAA bracket normalization", () => {
                 {
                   contestId: 6599912,
                   sectionId: 207,
-                  title: "Georgia vs Tennessee",
+                  title: "Tennessee vs Texas",
                   gameState: "F",
                   finalMessage: "FINAL",
                   statusCodeDisplay: "final",
@@ -47,8 +47,8 @@ describe("NCAA bracket normalization", () => {
                       isWinner: true,
                     },
                     {
-                      nameShort: "Georgia",
-                      nameFull: "University of Georgia",
+                      nameShort: "Texas",
+                      nameFull: "University of Texas",
                       score: 1,
                       isWinner: false,
                     },
@@ -57,7 +57,7 @@ describe("NCAA bracket normalization", () => {
                 {
                   contestId: 6599913,
                   sectionId: 207,
-                  title: "Tennessee vs Georgia",
+                  title: "Tennessee vs Texas",
                   gameState: "F",
                   finalMessage: "FINAL",
                   statusCodeDisplay: "final",
@@ -70,8 +70,8 @@ describe("NCAA bracket normalization", () => {
                       isWinner: true,
                     },
                     {
-                      nameShort: "Georgia",
-                      nameFull: "University of Georgia",
+                      nameShort: "Texas",
+                      nameFull: "University of Texas",
                       score: 1,
                       isWinner: false,
                     },
@@ -87,7 +87,7 @@ describe("NCAA bracket normalization", () => {
 
     expect(data.snapshots).toHaveLength(2);
     expect(data.snapshots[0]).toMatchObject({
-      matchupId: "super-tennessee-georgia",
+      matchupId: "game-2",
       seriesSummary: "TENN wins series 2-0",
       source: "ncaa",
     });
@@ -97,7 +97,7 @@ describe("NCAA bracket normalization", () => {
     expect(leaderboard.find((entry) => entry.name === "Tennessee Pick")).toMatchObject({
       points: 1,
     });
-    expect(leaderboard.find((entry) => entry.name === "Georgia Pick")).toMatchObject({
+    expect(leaderboard.find((entry) => entry.name === "Texas Pick")).toMatchObject({
       points: 0,
     });
   });

@@ -12,18 +12,18 @@ describe("PickList", () => {
       paid: true,
       tiebreakerRuns: 21,
       picks: {
-        "super-tennessee-georgia": "tennessee",
+        "game-2": "tennessee",
       },
     };
 
     data.snapshots = [
       {
-        matchupId: "super-tennessee-georgia",
+        matchupId: "game-2",
         espnGameId: "ncaa-6599913",
         awayTeamName: "University of Tennessee",
-        homeTeamName: "University of Georgia",
+        homeTeamName: "University of Texas",
         awayAbbreviation: "Tennessee",
-        homeAbbreviation: "Georgia",
+        homeAbbreviation: "Texas",
         awayScore: 2,
         homeScore: 1,
         status: "FINAL",
@@ -39,7 +39,7 @@ describe("PickList", () => {
 
     const html = renderToStaticMarkup(<PickList data={data} entrant={entrant} />);
 
-    expect(html).toContain("Tennessee vs Georgia");
+    expect(html).toContain("Game 2: Tennessee vs Texas");
     expect(html).toContain('class="pick-status correct"');
   });
 });

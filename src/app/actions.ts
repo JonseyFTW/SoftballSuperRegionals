@@ -92,6 +92,20 @@ export async function saveMatchup(formData: FormData) {
 
 export async function saveEntrant(formData: FormData) {
   await requireAdmin();
+  await upsertEntrantFromForm(formData);
+  refreshAdmin();
+}
+
+export async function submitPublicEntry(formData: FormData) {
+  const id = await upsertEntrantFromForm(formData, { publicEntry: true });
+  revalidateAll();
+  redirect(`/entrants/${id}`);
+}
+
+async function upsertEntrantFromForm(
+  formData: FormData,
+  options: { publicEntry?: boolean } = {},
+): Promise<string> {
   const id = optionalString(formData, "entrantId") ?? `entry-${crypto.randomUUID()}`;
   await updatePoolData((data) => {
     const existing = data.entrants.find((entrant) => entrant.id === id);
@@ -103,7 +117,7 @@ export async function saveEntrant(formData: FormData) {
     const entrant: Entrant = {
       id,
       name: stringFromForm(formData, "name", existing?.name ?? "New entrant"),
-      paid: formData.get("paid") === "on",
+      paid: options.publicEntry ? false : formData.get("paid") === "on",
       venmo: stringFromForm(formData, "venmo", ""),
       zelle: stringFromForm(formData, "zelle", ""),
       notes: stringFromForm(formData, "notes", ""),
@@ -118,7 +132,7 @@ export async function saveEntrant(formData: FormData) {
         : [...data.entrants, entrant],
     };
   });
-  refreshAdmin();
+  return id;
 }
 
 export async function deleteEntrant(formData: FormData) {
