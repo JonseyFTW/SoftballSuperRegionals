@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AutoRefresh } from "@/components/auto-refresh";
+import { getMatchupSnapshot, isLiveSnapshot } from "@/lib/game-status";
 import { calculateLeaderboard, sortLeaderboard } from "@/lib/pool";
 import { getPoolDataWithLiveSnapshots } from "@/lib/store";
 
@@ -7,9 +9,13 @@ export const dynamic = "force-dynamic";
 export default async function EntrantsPage() {
   const data = await getPoolDataWithLiveSnapshots();
   const leaderboard = sortLeaderboard(calculateLeaderboard(data), data);
+  const hasLiveGames = data.matchups.some((matchup) =>
+    isLiveSnapshot(getMatchupSnapshot(data, matchup)),
+  );
 
   return (
     <div className="stack">
+      <AutoRefresh hasLiveGames={hasLiveGames} />
       <section className="panel">
         <div className="section-heading">
           <div>

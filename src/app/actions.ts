@@ -60,7 +60,7 @@ export async function saveRound(formData: FormData) {
       round.id === roundId
         ? ({
             ...round,
-            lockAt: stringFromForm(formData, "lockAt", ""),
+            lockAt: optionalString(formData, "lockAt"),
             isLocked: formData.get("isLocked") === "on",
           } satisfies Round)
         : round,
@@ -138,14 +138,13 @@ export async function syncEspn() {
 }
 
 function revalidateAll() {
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath("/entrants");
   revalidatePath("/admin");
 }
 
 function refreshAdmin() {
   revalidateAll();
-  redirect("/admin");
 }
 
 function stringFromForm(formData: FormData, key: string, fallback: string): string {

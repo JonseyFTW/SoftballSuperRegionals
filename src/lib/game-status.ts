@@ -1,15 +1,18 @@
 import type { GameSnapshot, Matchup, PoolData } from "./types";
 
 export function getMatchupSnapshot(data: PoolData, matchup: Matchup): GameSnapshot | undefined {
-  const snapshots = data.snapshots.filter(
-    (candidate) =>
-      candidate.matchupId === matchup.id || candidate.espnGameId === matchup.espnGameId,
-  );
+  const snapshots = data.snapshots.filter((candidate) => snapshotMatchesMatchup(candidate, matchup));
   return snapshots.reduce<GameSnapshot | undefined>(
     (best, candidate) =>
       !best || displaySnapshotRank(candidate) > displaySnapshotRank(best) ? candidate : best,
     undefined,
   );
+}
+
+function snapshotMatchesMatchup(snapshot: GameSnapshot, matchup: Matchup): boolean {
+  if (snapshot.matchupId && snapshot.matchupId === matchup.id) return true;
+  if (matchup.espnGameId && snapshot.espnGameId === matchup.espnGameId) return true;
+  return false;
 }
 
 export function findMatchupForSnapshot(
@@ -76,10 +79,7 @@ function displaySnapshotRank(snapshot: GameSnapshot): number {
 
 function getSeriesSnapshot(data: PoolData, matchup: Matchup): GameSnapshot | undefined {
   return data.snapshots
-    .filter(
-      (candidate) =>
-        candidate.matchupId === matchup.id || candidate.espnGameId === matchup.espnGameId,
-    )
+    .filter((candidate) => snapshotMatchesMatchup(candidate, matchup))
     .reduce<GameSnapshot | undefined>(
       (best, candidate) =>
         !best || seriesSnapshotRank(candidate) > seriesSnapshotRank(best) ? candidate : best,

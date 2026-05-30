@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { PickList } from "@/components/pick-list";
+import { getMatchupSnapshot, isLiveSnapshot } from "@/lib/game-status";
 import { calculateLeaderboard, calculateScenarioOdds, sortLeaderboard } from "@/lib/pool";
 import { getPoolDataWithLiveSnapshots } from "@/lib/store";
 
@@ -21,9 +23,13 @@ export default async function EntrantPage({
     (entry) => entry.entrantId === id,
   );
   const odds = calculateScenarioOdds(data).find((entry) => entry.entrantId === id);
+  const hasLiveGames = data.matchups.some((matchup) =>
+    isLiveSnapshot(getMatchupSnapshot(data, matchup)),
+  );
 
   return (
     <div className="stack">
+      <AutoRefresh hasLiveGames={hasLiveGames} />
       <Link className="back-link" href="/entrants">
         <ArrowLeft size={16} />
         All entrants
