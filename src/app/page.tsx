@@ -1,7 +1,8 @@
 import { DollarSign, Trophy, Users, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { GameCard, MatchupRow } from "@/components/game-card";
+import { BracketView } from "@/components/bracket-view";
+import { GameCard } from "@/components/game-card";
 import { LeaderboardTable } from "@/components/leaderboard-table";
 import { MetricCard } from "@/components/metric-card";
 import { OddsList } from "@/components/odds-list";
@@ -22,31 +23,30 @@ export default async function Home() {
   const payout = calculatePayouts(data);
   const odds = calculateScenarioOdds(data);
   const paidCount = data.entrants.filter((entrant) => entrant.paid).length;
-  const superRegionals = data.matchups
-    .filter((matchup) => matchup.roundId === "super-regionals")
+  const liveMatchups = data.matchups
+    .filter((matchup) => isLiveSnapshot(getMatchupSnapshot(data, matchup)))
     .sort((a, b) => a.sortOrder - b.sortOrder);
-  const liveMatchups = superRegionals.filter((matchup) =>
-    isLiveSnapshot(getMatchupSnapshot(data, matchup)),
-  );
-  const inactiveMatchups = superRegionals.filter(
-    (matchup) => !isLiveSnapshot(getMatchupSnapshot(data, matchup)),
-  );
 
   return (
     <div className="stack">
       <AutoRefresh hasLiveGames={liveMatchups.length > 0} />
       <section className="hero-panel">
         <div>
-          <p className="eyebrow">Straight pick&apos;em bracket</p>
+          <p className="eyebrow">Double-elimination bracket pool</p>
           <h1>{data.settings.name}</h1>
           <p>
-            Track picks, live super regional scorebugs, possible points left,
-            payout math, and who still has a path to the top.
+            Pick both sides of the WCWS bracket. Points scale by round (1→6), and
+            the bracket final and championship score on who advances.
           </p>
           <div className="hero-actions">
             <Link className="button button-primary" href="/entrants">
               View everyone&apos;s picks
             </Link>
+            {data.settings.publicEntriesOpen ? (
+              <Link className="button button-secondary" href="/enter">
+                Fill out a bracket
+              </Link>
+            ) : null}
             <Link className="button button-secondary" href="/admin">
               Admin portal
             </Link>
@@ -107,27 +107,30 @@ export default async function Home() {
         </div>
       </section>
 
+      {liveMatchups.length ? (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Live Now</h2>
+              <p>{liveMatchups.length} game{liveMatchups.length === 1 ? "" : "s"} in progress</p>
+            </div>
+          </div>
+          <div className="game-grid">
+            {liveMatchups.map((matchup) => (
+              <GameCard key={matchup.id} data={data} matchup={matchup} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className="panel">
         <div className="section-heading">
           <div>
-            <h2>Super Regionals</h2>
-            <p>{liveMatchups.length ? `${liveMatchups.length} live now` : "No live games right now"}</p>
+            <h2>Bracket</h2>
+            <p>Winners advance right; losers drop to the elimination side. Points by round below each game.</p>
           </div>
         </div>
-        <div className="scoreboard-stack">
-          {liveMatchups.length ? (
-            <div className="game-grid">
-              {liveMatchups.map((matchup) => (
-                <GameCard key={matchup.id} data={data} matchup={matchup} />
-              ))}
-            </div>
-          ) : null}
-          <div className="matchup-list">
-            {inactiveMatchups.map((matchup) => (
-              <MatchupRow key={matchup.id} data={data} matchup={matchup} />
-            ))}
-          </div>
-        </div>
+        <BracketView data={data} />
       </section>
     </div>
   );

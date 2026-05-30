@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminPassword, clearAdminSession, requireAdmin, setAdminSession } from "@/lib/auth";
 import { getDefaultPayoutRules } from "@/lib/pool";
-import { syncLiveSnapshots, updatePoolData } from "@/lib/store";
+import { getPoolData, syncLiveSnapshots, updatePoolData } from "@/lib/store";
 import type { Entrant, Matchup, PayoutRule, Round } from "@/lib/types";
 
 export async function loginAdmin(formData: FormData) {
@@ -46,6 +46,7 @@ export async function saveSettings(formData: FormData) {
           ? undefined
           : numberFromForm(formData, "championshipRunsActual", 0),
       payoutRules,
+      publicEntriesOpen: formData.get("publicEntriesOpen") === "on",
     },
   }));
   refreshAdmin();
@@ -78,9 +79,6 @@ export async function saveMatchup(formData: FormData) {
       matchup.id === matchupId
         ? ({
             ...matchup,
-            label: stringFromForm(formData, "label", matchup.label),
-            teamAId: optionalString(formData, "teamAId"),
-            teamBId: optionalString(formData, "teamBId"),
             winnerTeamId: optionalString(formData, "winnerTeamId"),
             espnGameId: optionalString(formData, "espnGameId"),
           } satisfies Matchup)
@@ -135,6 +133,40 @@ export async function syncEspn() {
   await requireAdmin();
   await syncLiveSnapshots();
   refreshAdmin();
+}
+
+export async function createPublicEntrant(formData: FormData) {
+  const data = await getPoolData();
+  if (!data.settings.publicEntriesOpen) {
+    redirect("/?closed=1");
+  }
+
+  const name = stringFromForm(formData, "name", "");
+  if (!name) {
+    redirect("/enter?error=name");
+  }
+
+  const id = `entry-${crypto.randomUUID()}`;
+  await updatePoolData((current) => {
+    const picks = Object.fromEntries(
+      current.matchups
+        .map((matchup) => [matchup.id, optionalString(formData, `pick-${matchup.id}`)] as const)
+        .filter(([, value]) => value),
+    ) as Record<string, string>;
+    const entrant: Entrant = {
+      id,
+      name,
+      paid: false,
+      venmo: stringFromForm(formData, "venmo", ""),
+      zelle: stringFromForm(formData, "zelle", ""),
+      tiebreakerRuns: numberFromForm(formData, "tiebreakerRuns", 0),
+      picks,
+    };
+    return { ...current, entrants: [...current.entrants, entrant] };
+  });
+
+  revalidateAll();
+  redirect(`/entrants/${id}?welcome=1`);
 }
 
 function revalidateAll() {

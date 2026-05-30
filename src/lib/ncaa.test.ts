@@ -1,104 +1,65 @@
 import { describe, expect, it } from "vitest";
-import { calculateLeaderboard, createInitialPoolData } from "./pool";
 import { normalizeNcaaBracketSnapshots } from "./ncaa";
+import { createInitialPoolData } from "./pool";
 
 describe("NCAA bracket normalization", () => {
-  it("scores a completed super regional series when ESPN no longer has a game ID", () => {
-    const data = {
-      ...createInitialPoolData(),
-      entrants: [
-        {
-          id: "entry-tennessee",
-          name: "Tennessee Pick",
-          paid: true,
-          tiebreakerRuns: 21,
-          picks: {
-            "super-tennessee-georgia": "tennessee",
+  it("maps a single WCWS game to its bracket matchup by team names", () => {
+    const snapshots = normalizeNcaaBracketSnapshots(
+      {
+        championships: [
+          {
+            games: [
+              {
+                contestId: 7001,
+                gameState: "F",
+                finalMessage: "FINAL",
+                statusCodeDisplay: "final",
+                startDate: "05/28/2026",
+                teams: [
+                  { nameShort: "Texas Tech", nameFull: "Texas Tech", score: 8, isWinner: true },
+                  { nameShort: "Mississippi St.", nameFull: "Mississippi State", score: 0, isWinner: false },
+                ],
+              },
+            ],
           },
-        },
-        {
-          id: "entry-georgia",
-          name: "Georgia Pick",
-          paid: true,
-          tiebreakerRuns: 18,
-          picks: {
-            "super-tennessee-georgia": "georgia",
-          },
-        },
-      ],
-      snapshots: normalizeNcaaBracketSnapshots(
-        {
-          championships: [
-            {
-              games: [
-                {
-                  contestId: 6599912,
-                  sectionId: 207,
-                  title: "Georgia vs Tennessee",
-                  gameState: "F",
-                  finalMessage: "FINAL",
-                  statusCodeDisplay: "final",
-                  startDate: "05/21/2026",
-                  teams: [
-                    {
-                      nameShort: "Tennessee",
-                      nameFull: "University of Tennessee",
-                      score: 3,
-                      isWinner: true,
-                    },
-                    {
-                      nameShort: "Georgia",
-                      nameFull: "University of Georgia",
-                      score: 1,
-                      isWinner: false,
-                    },
-                  ],
-                },
-                {
-                  contestId: 6599913,
-                  sectionId: 207,
-                  title: "Tennessee vs Georgia",
-                  gameState: "F",
-                  finalMessage: "FINAL",
-                  statusCodeDisplay: "final",
-                  startDate: "05/22/2026",
-                  teams: [
-                    {
-                      nameShort: "Tennessee",
-                      nameFull: "University of Tennessee",
-                      score: 2,
-                      isWinner: true,
-                    },
-                    {
-                      nameShort: "Georgia",
-                      nameFull: "University of Georgia",
-                      score: 1,
-                      isWinner: false,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        createInitialPoolData(),
-      ),
-    };
+        ],
+      },
+      createInitialPoolData(),
+    );
 
-    expect(data.snapshots).toHaveLength(2);
-    expect(data.snapshots[0]).toMatchObject({
-      matchupId: "super-tennessee-georgia",
-      seriesSummary: "TENN wins series 2-0",
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0]).toMatchObject({
+      matchupId: "g1",
       source: "ncaa",
+      awayTeamName: "Texas Tech",
+      homeTeamName: "Mississippi State",
     });
+    // Single elimination games are not series, so no series summary is attached.
+    expect(snapshots[0].seriesSummary).toBeUndefined();
+  });
 
-    const leaderboard = calculateLeaderboard(data);
+  it("does not attach the Texas Tech game to Texas's elimination matchup", () => {
+    const snapshots = normalizeNcaaBracketSnapshots(
+      {
+        championships: [
+          {
+            games: [
+              {
+                contestId: 7001,
+                gameState: "F",
+                finalMessage: "FINAL",
+                teams: [
+                  { nameShort: "Texas Tech", nameFull: "Texas Tech", score: 8, isWinner: true },
+                  { nameShort: "Mississippi St.", nameFull: "Mississippi State", score: 0, isWinner: false },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      createInitialPoolData(),
+    );
 
-    expect(leaderboard.find((entry) => entry.name === "Tennessee Pick")).toMatchObject({
-      points: 1,
-    });
-    expect(leaderboard.find((entry) => entry.name === "Georgia Pick")).toMatchObject({
-      points: 0,
-    });
+    expect(snapshots.some((snapshot) => snapshot.matchupId === "g5")).toBe(false);
   });
 });

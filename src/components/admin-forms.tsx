@@ -9,6 +9,8 @@ import {
   saveSettings,
 } from "@/app/actions";
 import { AutoSaveForm } from "@/components/auto-save-form";
+import { BracketPicker } from "@/components/bracket-picker";
+import { slotLabel } from "@/components/bracket-view";
 import { getDefaultPayoutRules, getTeam } from "@/lib/pool";
 import type { Entrant, Matchup, PoolData, Round, Team } from "@/lib/types";
 
@@ -83,6 +85,14 @@ export function SettingsAutoForm({ data }: { data: PoolData }) {
           />
         </label>
       ))}
+      <label className="checkbox-label checkbox-block">
+        <input
+          name="publicEntriesOpen"
+          type="checkbox"
+          defaultChecked={data.settings.publicEntriesOpen ?? false}
+        />
+        Allow public bracket entries
+      </label>
       <button className="button button-primary" type="submit">
         Save settings
       </button>
@@ -95,7 +105,9 @@ export function RoundAutoForm({ round }: { round: Round }) {
     <AutoSaveForm action={saveRound} className="admin-row-form">
       <input type="hidden" name="roundId" value={round.id} />
       <strong>{round.name}</strong>
-      <span>{round.points} pts</span>
+      <span>
+        {round.points} pts{round.scoreByAdvance ? " · scored on who advances" : " · per game"}
+      </span>
       <label>
         Lock time
         <input
@@ -116,31 +128,25 @@ export function RoundAutoForm({ round }: { round: Round }) {
 }
 
 export function MatchupAutoForm({ data, matchup }: { data: PoolData; matchup: Matchup }) {
-  const teams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
+  const teamA = getTeam(data, matchup.teamAId);
+  const teamB = getTeam(data, matchup.teamBId);
+  const choices = [teamA, teamB].filter(isTeam);
+  // Before both feeders finish, let the admin pick from any team.
+  const winnerOptions = choices.length === 2 ? choices : data.teams;
+
   return (
     <AutoSaveForm action={saveMatchup} className="admin-row-form matchup-form">
       <input type="hidden" name="matchupId" value={matchup.id} />
-      <label>
-        Label
-        <input name="label" defaultValue={matchup.label} />
-      </label>
-      <TeamSelect
-        data={data}
-        name="teamAId"
-        defaultValue={matchup.teamAId}
-        blankLabel="Team A"
-      />
-      <TeamSelect
-        data={data}
-        name="teamBId"
-        defaultValue={matchup.teamBId}
-        blankLabel="Team B"
-      />
+      <div className="matchup-teams">
+        <strong>{teamA?.shortName ?? slotLabel(data, matchup.slotA)}</strong>
+        <span>vs</span>
+        <strong>{teamB?.shortName ?? slotLabel(data, matchup.slotB)}</strong>
+      </div>
       <label>
         Winner
         <select name="winnerTeamId" defaultValue={matchup.winnerTeamId ?? ""}>
           <option value="">Unresolved</option>
-          {teams.map((team) => (
+          {winnerOptions.map((team) => (
             <option key={team.id} value={team.id}>
               {team.shortName}
             </option>
@@ -171,7 +177,7 @@ export function EntrantAutoForm({
   entrant: Entrant;
 }) {
   return (
-    <AutoSaveForm action={saveEntrant} className="admin-form entrant-form">
+    <AutoSaveForm action={saveEntrant} className="admin-form entrant-form" autoSave={false}>
       <input type="hidden" name="entrantId" value={entrant.id} />
       <h3>{entrant.name}</h3>
       <label>
@@ -207,21 +213,12 @@ export function EntrantAutoForm({
         Notes
         <textarea name="notes" rows={2} defaultValue={entrant.notes ?? ""} />
       </label>
-      <div className="pick-admin-list">
-        {data.matchups
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((matchup) => (
-            <label key={matchup.id}>
-              {matchup.label}
-              <PickSelect
-                data={data}
-                matchup={matchup}
-                name={`pick-${matchup.id}`}
-                defaultValue={entrant.picks[matchup.id]}
-              />
-            </label>
-          ))}
-      </div>
+      <BracketPicker
+        teams={data.teams}
+        matchups={data.matchups}
+        rounds={data.rounds}
+        initialPicks={entrant.picks}
+      />
       <div className="form-actions">
         <button className="button button-primary" type="submit">
           Save entrant
@@ -270,16 +267,7 @@ export function AddEntrantForm({ data }: { data: PoolData }) {
         Notes
         <textarea name="notes" rows={2} />
       </label>
-      <div className="pick-admin-list">
-        {data.matchups
-          .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((matchup) => (
-            <label key={matchup.id}>
-              {matchup.label}
-              <PickSelect data={data} matchup={matchup} name={`pick-${matchup.id}`} />
-            </label>
-          ))}
-      </div>
+      <BracketPicker teams={data.teams} matchups={data.matchups} rounds={data.rounds} />
       <div className="form-actions">
         <button className="button button-primary" type="submit">
           Add entrant
@@ -313,58 +301,6 @@ function DeleteEntrantButton({
     >
       {isPending ? "Deleting..." : "Delete"}
     </button>
-  );
-}
-
-function TeamSelect({
-  data,
-  name,
-  defaultValue,
-  blankLabel,
-}: {
-  data: PoolData;
-  name: string;
-  defaultValue?: string;
-  blankLabel: string;
-}) {
-  return (
-    <label>
-      {blankLabel}
-      <select name={name} defaultValue={defaultValue ?? ""}>
-        <option value="">{blankLabel}</option>
-        {data.teams.map((team) => (
-          <option key={team.id} value={team.id}>
-            {team.shortName}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function PickSelect({
-  data,
-  matchup,
-  name,
-  defaultValue,
-}: {
-  data: PoolData;
-  matchup: Matchup;
-  name: string;
-  defaultValue?: string;
-}) {
-  const matchupTeams = [getTeam(data, matchup.teamAId), getTeam(data, matchup.teamBId)].filter(isTeam);
-  const choices = matchupTeams.length > 0 ? matchupTeams : data.teams;
-
-  return (
-    <select name={name} defaultValue={defaultValue ?? ""}>
-      <option value="">No pick</option>
-      {choices.map((team) => (
-        <option key={team.id} value={team.id}>
-          {team.shortName}
-        </option>
-      ))}
-    </select>
   );
 }
 

@@ -970,3 +970,242 @@ textarea {
     grid-column: 2;
   }
 }
+
+/* Bracket view + picker */
+.bracket-view,
+.bracket-picker {
+  display: grid;
+  gap: 16px;
+}
+
+.bracket-pods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.bracket-pod {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.bracket-pod h3,
+.bracket-pod h4 {
+  font-size: 1.05rem;
+}
+
+.bracket-group {
+  display: grid;
+  gap: 8px;
+}
+
+.bracket-group-title {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bracket-games {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.bracket-game,
+.picker-game {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+}
+
+.bracket-game header,
+.picker-game header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.bracket-points {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--soft-strong);
+  color: var(--control-foreground);
+  font-size: 0.72rem;
+}
+
+.bracket-live {
+  color: var(--accent);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.bracket-game.is-correct {
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
+  background: color-mix(in srgb, var(--green) 10%, var(--panel));
+}
+
+.bracket-game.is-wrong {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.bracket-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--soft);
+  font-size: 0.9rem;
+}
+
+.bracket-team.winner {
+  background: color-mix(in srgb, var(--green) 16%, var(--soft));
+  font-weight: 800;
+}
+
+.bracket-team.picked {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.bracket-seed {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--soft-strong);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.bracket-team-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.bracket-game footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--soft-strong);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.tag-correct {
+  background: color-mix(in srgb, var(--green) 18%, transparent);
+  color: var(--green);
+}
+
+.tag-wrong {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.bracket-score {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.bracket-finals {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+.bracket-finals .bracket-games {
+  grid-template-columns: minmax(0, 360px);
+}
+
+/* Picker-specific */
+.bracket-picker-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--soft);
+  font-size: 0.85rem;
+}
+
+.bracket-picker-status span {
+  color: var(--muted);
+}
+
+.picker-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--control);
+  color: var(--control-foreground);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.picker-team:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.picker-team.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--control));
+  font-weight: 800;
+}
+
+.matchup-teams {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+}
+
+.matchup-teams span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 720px) {
+  .bracket-pods {
+    grid-template-columns: 1fr;
+  }
+}

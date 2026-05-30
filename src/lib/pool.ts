@@ -1,4 +1,5 @@
 import type {
+  BracketId,
   Entrant,
   LeaderboardEntry,
   Matchup,
@@ -8,8 +9,10 @@ import type {
   RoundId,
   ScenarioOdd,
   Team,
+  TeamSlot,
 } from "./types";
 import { getSeriesWinnerTeamId } from "./game-status";
+import { enumerateBracketOutcomes, possibleWinnerIds } from "./bracket";
 
 const now = new Date().toISOString();
 
@@ -26,50 +29,53 @@ export function getDefaultPayoutRules(places: number): PayoutRule[] {
 
 export function createInitialPoolData(): PoolData {
   const teams: Team[] = [
-    team("alabama", "Alabama Crimson Tide", "Alabama", "ALA", "16", "#9e1b32"),
-    team("lsu", "LSU Tigers", "LSU", "LSU", "9", "#461d7c"),
-    team("arkansas", "Arkansas Razorbacks", "Arkansas", "ARK", "3", "#9d2235"),
-    team("duke", "Duke Blue Devils", "Duke", "DUKE", "14", "#00539b"),
-    team("texas", "Texas Longhorns", "Texas", "TEX", "6", "#bf5700"),
-    team(
-      "arizona-state",
-      "Arizona State Sun Devils",
-      "Arizona State",
-      "ASU",
-      "11",
-      "#8c1d40",
-    ),
-    team("florida", "Florida Gators", "Florida", "FLA", "2", "#0021a5"),
-    team("texas-tech", "Texas Tech Red Raiders", "Texas Tech", "TTU", "15", "#cc0000"),
-    team("oklahoma", "Oklahoma Sooners", "Oklahoma", "OU", "1", "#841617"),
+    team("texas-tech", "Texas Tech Red Raiders", "Texas Tech", "TTU", "3", "#cc0000"),
     team(
       "mississippi-state",
       "Mississippi State Bulldogs",
       "Mississippi State",
       "MSST",
-      "16",
+      "5",
       "#660000",
     ),
-    team("tennessee", "Tennessee Lady Volunteers", "Tennessee", "TENN", "7", "#ff8200"),
-    team("georgia", "Georgia Bulldogs", "Georgia", "UGA", "10", "#ba0c2f"),
-    team("nebraska", "Nebraska Cornhuskers", "Nebraska", "NEB", "4", "#e41c38"),
-    team(
-      "oklahoma-state",
-      "Oklahoma State Cowgirls",
-      "Oklahoma State",
-      "OKST",
-      "13",
-      "#ff7300",
-    ),
-    team("ucla", "UCLA Bruins", "UCLA", "UCLA", "5", "#2774ae"),
-    team("ucf", "UCF Knights", "UCF", "UCF", "12", "#ba9b37"),
+    team("tennessee", "Tennessee Lady Volunteers", "Tennessee", "TENN", "2", "#ff8200"),
+    team("texas", "Texas Longhorns", "Texas", "TEX", "1", "#bf5700"),
+    team("alabama", "Alabama Crimson Tide", "Alabama", "ALA", "1", "#9e1b32"),
+    team("ucla", "UCLA Bruins", "UCLA", "UCLA", "2", "#2774ae"),
+    team("arkansas", "Arkansas Razorbacks", "Arkansas", "ARK", "4", "#9d2235"),
+    team("nebraska", "Nebraska Cornhuskers", "Nebraska", "NEB", "1", "#e41c38"),
   ];
 
   const rounds: Round[] = [
-    round("super-regionals", "Super Regionals", 1),
-    round("wcws-semis", "WCWS Semifinals", 2),
-    round("championship-matchup", "Championship Matchup", 4),
-    round("champion", "National Champion", 8),
+    round("wb-round1", "Winners' Bracket Round 1", 1),
+    round("lb-round1", "Elimination Round 1", 2),
+    round("wb-final", "Winners' Bracket Final", 3),
+    round("lb-final", "Elimination Final", 4),
+    round("bracket-final", "Bracket Final (advance to Finals)", 5, true),
+    round("championship", "National Champion", 6, true),
+  ];
+
+  const matchups: Matchup[] = [
+    // Bracket 1 winners' round 1
+    game("g1", "wb-round1", "bracket-1", "1", seed("texas-tech"), seed("mississippi-state"), 1),
+    game("g2", "wb-round1", "bracket-1", "2", seed("tennessee"), seed("texas"), 2),
+    // Bracket 2 winners' round 1
+    game("g3", "wb-round1", "bracket-2", "3", seed("alabama"), seed("ucla"), 3),
+    game("g4", "wb-round1", "bracket-2", "4", seed("arkansas"), seed("nebraska"), 4),
+    // Elimination round 1 (losers of the two round-1 games)
+    game("g5", "lb-round1", "bracket-1", "5", loser("g1"), loser("g2"), 5),
+    game("g6", "lb-round1", "bracket-2", "6", loser("g3"), loser("g4"), 6),
+    // Winners' bracket final (winners of the two round-1 games)
+    game("g7", "wb-final", "bracket-1", "7", winner("g1"), winner("g2"), 7),
+    game("g8", "wb-final", "bracket-2", "8", winner("g3"), winner("g4"), 8),
+    // Elimination final (loser of WB final vs winner of elimination round 1)
+    game("g9", "lb-final", "bracket-1", "9", loser("g7"), winner("g5"), 9),
+    game("g10", "lb-final", "bracket-2", "10", loser("g8"), winner("g6"), 10),
+    // Bracket final - who advances to the WCWS Finals (loser must win twice)
+    game("g11", "bracket-final", "bracket-1", "11/12", winner("g7"), winner("g9"), 11),
+    game("g13", "bracket-final", "bracket-2", "13/14", winner("g8"), winner("g10"), 13),
+    // Championship - best of three
+    game("championship", "championship", "finals", "Finals", winner("g11"), winner("g13"), 20),
   ];
 
   return {
@@ -79,85 +85,32 @@ export function createInitialPoolData(): PoolData {
       adminVenmo: "@wcws-admin",
       adminZelle: "",
       payoutRules: getDefaultPayoutRules(3),
+      publicEntriesOpen: false,
     },
     teams,
     rounds,
-    matchups: [
-      matchup("super-alabama-lsu", "super-regionals", "Alabama vs LSU", "alabama", "lsu", 1),
-      matchup("super-arkansas-duke", "super-regionals", "Arkansas vs Duke", "arkansas", "duke", 2),
-      matchup(
-        "super-texas-arizona-state",
-        "super-regionals",
-        "Texas vs Arizona State",
-        "texas",
-        "arizona-state",
-        3,
-      ),
-      matchup(
-        "super-florida-texas-tech",
-        "super-regionals",
-        "Florida vs Texas Tech",
-        "florida",
-        "texas-tech",
-        4,
-      ),
-      matchup(
-        "super-oklahoma-mississippi-state",
-        "super-regionals",
-        "Oklahoma vs Mississippi State",
-        "oklahoma",
-        "mississippi-state",
-        5,
-      ),
-      matchup(
-        "super-tennessee-georgia",
-        "super-regionals",
-        "Tennessee vs Georgia",
-        "tennessee",
-        "georgia",
-        6,
-      ),
-      matchup(
-        "super-nebraska-oklahoma-state",
-        "super-regionals",
-        "Nebraska vs Oklahoma State",
-        "nebraska",
-        "oklahoma-state",
-        7,
-      ),
-      matchup("super-ucla-ucf", "super-regionals", "UCLA vs UCF", "ucla", "ucf", 8),
-      matchup("wcws-semi-1", "wcws-semis", "WCWS semifinal pick 1", undefined, undefined, 9),
-      matchup("wcws-semi-2", "wcws-semis", "WCWS semifinal pick 2", undefined, undefined, 10),
-      matchup(
-        "championship-matchup",
-        "championship-matchup",
-        "Championship matchup",
-        undefined,
-        undefined,
-        11,
-      ),
-      matchup("champion", "champion", "National champion", undefined, undefined, 12),
-    ],
+    matchups,
     entrants: [
       {
         id: "entry-sample-1",
         name: "Sample Leader",
         paid: true,
         venmo: "@sample-leader",
-        tiebreakerRuns: 24,
+        tiebreakerRuns: 11,
         picks: {
-          "super-alabama-lsu": "lsu",
-          "super-arkansas-duke": "duke",
-          "super-texas-arizona-state": "texas",
-          "super-florida-texas-tech": "florida",
-          "super-oklahoma-mississippi-state": "oklahoma",
-          "super-tennessee-georgia": "tennessee",
-          "super-nebraska-oklahoma-state": "nebraska",
-          "super-ucla-ucf": "ucla",
-          "wcws-semi-1": "oklahoma",
-          "wcws-semi-2": "tennessee",
-          "championship-matchup": "oklahoma",
-          champion: "oklahoma",
+          g1: "texas-tech",
+          g2: "tennessee",
+          g3: "alabama",
+          g4: "nebraska",
+          g5: "texas",
+          g6: "ucla",
+          g7: "tennessee",
+          g8: "alabama",
+          g9: "texas",
+          g10: "ucla",
+          g11: "tennessee",
+          g13: "alabama",
+          championship: "alabama",
         },
       },
       {
@@ -165,20 +118,21 @@ export function createInitialPoolData(): PoolData {
         name: "Sample Chaser",
         paid: false,
         zelle: "sample@example.com",
-        tiebreakerRuns: 19,
+        tiebreakerRuns: 8,
         picks: {
-          "super-alabama-lsu": "alabama",
-          "super-arkansas-duke": "arkansas",
-          "super-texas-arizona-state": "arizona-state",
-          "super-florida-texas-tech": "texas-tech",
-          "super-oklahoma-mississippi-state": "mississippi-state",
-          "super-tennessee-georgia": "georgia",
-          "super-nebraska-oklahoma-state": "oklahoma-state",
-          "super-ucla-ucf": "ucf",
-          "wcws-semi-1": "texas-tech",
-          "wcws-semi-2": "georgia",
-          "championship-matchup": "georgia",
-          champion: "georgia",
+          g1: "mississippi-state",
+          g2: "texas",
+          g3: "ucla",
+          g4: "arkansas",
+          g5: "texas-tech",
+          g6: "nebraska",
+          g7: "texas",
+          g8: "ucla",
+          g9: "texas-tech",
+          g10: "nebraska",
+          g11: "texas",
+          g13: "ucla",
+          championship: "texas",
         },
       },
     ],
@@ -187,11 +141,61 @@ export function createInitialPoolData(): PoolData {
   };
 }
 
+/**
+ * Detects pool data saved by the older super-regional model (no bracket feeds /
+ * no championship round) so it can be rebuilt into the WCWS double-elimination
+ * bracket.
+ */
+function isLegacyPool(data: PoolData): boolean {
+  const hasChampionshipRound = data.rounds?.some((round) => round.id === "championship");
+  const everyMatchupHasBracket =
+    Array.isArray(data.matchups) &&
+    data.matchups.length > 0 &&
+    data.matchups.every((matchup) => Boolean(matchup.bracketId));
+  return !hasChampionshipRound || !everyMatchupHasBracket;
+}
+
+/**
+ * Upgrades legacy pool data to the WCWS bracket. Entrants, paid status, and pool
+ * settings are preserved; picks are reset to the new bracket because the old
+ * super-regional picks reference games that no longer exist. Returns the same
+ * object once the data is already in the new format.
+ */
+export function migratePoolData(data: PoolData): PoolData {
+  if (!isLegacyPool(data)) return data;
+
+  const scaffold = createInitialPoolData();
+  const validMatchupIds = new Set(scaffold.matchups.map((matchup) => matchup.id));
+  const entrants = (data.entrants ?? []).map((entrant) => ({
+    ...entrant,
+    picks: Object.fromEntries(
+      Object.entries(entrant.picks ?? {}).filter(([matchupId]) => validMatchupIds.has(matchupId)),
+    ),
+  }));
+
+  return {
+    ...scaffold,
+    settings: { ...scaffold.settings, ...data.settings },
+    entrants,
+    snapshots: [],
+    updatedAt: data.updatedAt ?? scaffold.updatedAt,
+  };
+}
+
 export function calculateLeaderboard(data: PoolData): LeaderboardEntry[] {
-  const matchups = matchupsWithSeriesWinners(data);
+  const winnerOf = actualWinnerLookup(data);
+  const byId = new Map(data.matchups.map((matchup) => [matchup.id, matchup]));
+  const memo = new Map<string, Set<string>>();
+
   return data.entrants.map((entrant) => {
-    const points = calculateEntrantPoints(entrant, matchups, data.rounds);
-    const possiblePointsLeft = calculatePossiblePointsLeft(entrant, matchups, data.rounds);
+    const points = scoreEntrant(entrant, data.matchups, data.rounds, winnerOf);
+    const possiblePointsLeft = calculatePossiblePointsLeft(
+      entrant,
+      data,
+      winnerOf,
+      byId,
+      memo,
+    );
     return {
       entrantId: entrant.id,
       name: entrant.name,
@@ -236,27 +240,17 @@ export function calculatePayouts(data: PoolData) {
 }
 
 export function calculateScenarioOdds(data: PoolData): ScenarioOdd[] {
-  const matchups = matchupsWithSeriesWinners(data);
-  const unresolved = matchups.filter(
-    (matchup) =>
-      !matchup.winnerTeamId && matchup.teamAId && matchup.teamBId && matchup.roundId !== "champion",
-  );
-  const scenarios = enumerateScenarios(unresolved);
+  const outcomes = enumerateBracketOutcomes(data);
   const totals = new Map<string, { first: number; tied: number }>();
-
   data.entrants.forEach((entrant) => totals.set(entrant.id, { first: 0, tied: 0 }));
 
-  scenarios.forEach((scenario) => {
-    const scenarioMatchups = matchups.map((matchup) => ({
-      ...matchup,
-      winnerTeamId: matchup.winnerTeamId ?? scenario[matchup.id],
-    }));
+  outcomes.forEach((outcome) => {
     const scores = data.entrants.map((entrant) => ({
       entrant,
-      points: calculateEntrantPoints(entrant, scenarioMatchups, data.rounds),
+      points: scoreEntrant(entrant, data.matchups, data.rounds, (id) => outcome[id]),
     }));
-    const highScore = Math.max(...scores.map((score) => score.points));
-    const winners = scores.filter((score) => score.points === highScore);
+    const highScore = scores.reduce((max, score) => Math.max(max, score.points), 0);
+    const winners = scores.filter((score) => score.points === highScore && highScore > 0);
 
     winners.forEach(({ entrant }) => {
       const total = totals.get(entrant.id);
@@ -271,9 +265,9 @@ export function calculateScenarioOdds(data: PoolData): ScenarioOdd[] {
     return {
       entrantId: entrant.id,
       name: entrant.name,
-      firstPlacePercent: percent(total.first, scenarios.length),
-      tiedFirstPercent: percent(total.tied, scenarios.length),
-      scenarios: scenarios.length,
+      firstPlacePercent: percent(total.first, outcomes.length),
+      tiedFirstPercent: percent(total.tied, outcomes.length),
+      scenarios: outcomes.length,
     };
   });
 }
@@ -288,15 +282,6 @@ export function getRound(data: PoolData, roundId: RoundId): Round {
   return roundItem;
 }
 
-export function isTeamAlive(teamId: string, matchups: Matchup[]): boolean {
-  return !matchups.some(
-    (matchup) =>
-      (matchup.teamAId === teamId || matchup.teamBId === teamId) &&
-      matchup.winnerTeamId &&
-      matchup.winnerTeamId !== teamId,
-  );
-}
-
 export function isRoundLocked(round: Round, at: Date = new Date()): boolean {
   if (round.isLocked) return true;
   if (!round.lockAt) return false;
@@ -304,50 +289,49 @@ export function isRoundLocked(round: Round, at: Date = new Date()): boolean {
   return Number.isFinite(lockAt.getTime()) && lockAt <= at;
 }
 
-function matchupsWithSeriesWinners(data: PoolData): Matchup[] {
-  return data.matchups.map((matchup) => ({
-    ...matchup,
-    winnerTeamId: matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup),
-  }));
+function actualWinnerLookup(data: PoolData): (matchupId: string) => string | undefined {
+  const winners = new Map<string, string | undefined>(
+    data.matchups.map((matchup) => [
+      matchup.id,
+      matchup.winnerTeamId ?? getSeriesWinnerTeamId(data, matchup),
+    ]),
+  );
+  return (matchupId) => winners.get(matchupId);
 }
 
-function calculateEntrantPoints(
+function scoreEntrant(
   entrant: Entrant,
   matchups: Matchup[],
   rounds: Round[],
+  winnerOf: (matchupId: string) => string | undefined,
 ): number {
   return matchups.reduce((total, matchup) => {
     const pickedTeamId = entrant.picks[matchup.id];
-    if (!matchup.winnerTeamId || pickedTeamId !== matchup.winnerTeamId) return total;
-    return total + (rounds.find((roundItem) => roundItem.id === matchup.roundId)?.points ?? 0);
+    const winnerTeamId = winnerOf(matchup.id);
+    if (!winnerTeamId || pickedTeamId !== winnerTeamId) return total;
+    return total + roundPoints(rounds, matchup.roundId);
   }, 0);
 }
 
 function calculatePossiblePointsLeft(
   entrant: Entrant,
-  matchups: Matchup[],
-  rounds: Round[],
+  data: PoolData,
+  winnerOf: (matchupId: string) => string | undefined,
+  byId: Map<string, Matchup>,
+  memo: Map<string, Set<string>>,
 ): number {
-  return matchups.reduce((total, matchup) => {
+  const winnerOfMatchup = (matchup: Matchup) => winnerOf(matchup.id);
+  return data.matchups.reduce((total, matchup) => {
     const pickedTeamId = entrant.picks[matchup.id];
-    if (!pickedTeamId || matchup.winnerTeamId || !isTeamAlive(pickedTeamId, matchups)) {
-      return total;
-    }
-    return total + (rounds.find((roundItem) => roundItem.id === matchup.roundId)?.points ?? 0);
+    if (!pickedTeamId || winnerOf(matchup.id)) return total;
+    const stillPossible = possibleWinnerIds(matchup.id, byId, winnerOfMatchup, memo);
+    if (!stillPossible.has(pickedTeamId)) return total;
+    return total + roundPoints(data.rounds, matchup.roundId);
   }, 0);
 }
 
-function enumerateScenarios(matchups: Matchup[]): Record<string, string>[] {
-  if (matchups.length === 0) return [{}];
-  return matchups.reduce<Record<string, string>[]>(
-    (scenarios, matchup) =>
-      scenarios.flatMap((scenario) =>
-        [matchup.teamAId, matchup.teamBId]
-          .filter((teamId): teamId is string => Boolean(teamId))
-          .map((teamId) => ({ ...scenario, [matchup.id]: teamId })),
-      ),
-    [{}],
-  );
+function roundPoints(rounds: Round[], roundId: RoundId): number {
+  return rounds.find((roundItem) => roundItem.id === roundId)?.points ?? 0;
 }
 
 function percent(count: number, total: number): number {
@@ -364,23 +348,39 @@ function team(
   name: string,
   shortName: string,
   abbreviation: string,
-  seed: string,
+  seedLabel: string,
   color: string,
 ): Team {
-  return { id, name, shortName, abbreviation, seed, color };
+  return { id, name, shortName, abbreviation, seed: seedLabel, color };
 }
 
-function round(id: RoundId, name: string, points: number): Round {
-  return { id, name, points, isLocked: false };
+function round(id: RoundId, name: string, points: number, scoreByAdvance = false): Round {
+  return { id, name, points, scoreByAdvance, isLocked: false };
 }
 
-function matchup(
+function seed(teamId: string): TeamSlot {
+  return { type: "team", teamId };
+}
+
+function winner(matchupId: string): TeamSlot {
+  return { type: "winner", matchupId };
+}
+
+function loser(matchupId: string): TeamSlot {
+  return { type: "loser", matchupId };
+}
+
+function game(
   id: string,
   roundId: RoundId,
-  label: string,
-  teamAId: string | undefined,
-  teamBId: string | undefined,
+  bracketId: BracketId,
+  gameLabel: string,
+  slotA: TeamSlot,
+  slotB: TeamSlot,
   sortOrder: number,
+  winnerTeamId?: string,
 ): Matchup {
-  return { id, roundId, label, teamAId, teamBId, sortOrder };
+  const label =
+    roundId === "championship" ? "Championship Finals (Best of 3)" : `Game ${gameLabel}`;
+  return { id, roundId, bracketId, gameLabel, label, slotA, slotB, sortOrder, winnerTeamId };
 }

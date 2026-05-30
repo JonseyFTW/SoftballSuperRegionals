@@ -1,3 +1,5 @@
+import { resolveBracket } from "./bracket";
+import { namesMatch } from "./names";
 import type { GameSnapshot, Matchup, PoolData, Team } from "./types";
 
 type AnyRecord = Record<string, unknown>;
@@ -11,17 +13,22 @@ export async function fetchNcaaBracketSnapshots(data: PoolData): Promise<GameSna
 }
 
 export function normalizeNcaaBracketSnapshots(payload: unknown, data: PoolData): GameSnapshot[] {
+  const resolved = resolveBracket(data);
   const championship = first(asArray(asRecord(payload).championships));
   const games = asArray(championship.games)
     .map(asRecord)
-    .filter((game) => isSuperRegionalGame(game) && asArray(game.teams).length >= 2);
+    .filter((game) => asArray(game.teams).length >= 2);
   const snapshots: GameSnapshot[] = [];
 
-  data.matchups
-    .filter((matchup) => matchup.roundId === "super-regionals")
+  resolved.matchups
+    .filter((matchup) => matchup.teamAId && matchup.teamBId)
     .forEach((matchup) => {
-      const matchupGames = games.filter((game) => ncaaGameMatchesMatchup(data, matchup, game));
-      const seriesSummary = getSeriesSummary(data, matchup, matchupGames);
+      const matchupGames = games.filter((game) => ncaaGameMatchesMatchup(resolved, matchup, game));
+      // Only the championship is a multi-game series; everything else is a single game.
+      const seriesSummary =
+        matchup.roundId === "championship"
+          ? getSeriesSummary(resolved, matchup, matchupGames)
+          : undefined;
 
       matchupGames.forEach((game) => {
         snapshots.push(normalizeNcaaGame(game, matchup, seriesSummary));
@@ -132,11 +139,6 @@ function ncaaTeamMatchesTeam(ncaaTeam: AnyRecord, team: Team): boolean {
   );
 }
 
-function isSuperRegionalGame(game: AnyRecord): boolean {
-  const sectionId = numberValue(game.sectionId);
-  return sectionId >= 201 && sectionId <= 208;
-}
-
 function isFinalNcaaGame(game: AnyRecord): boolean {
   return (
     stringValue(game.gameState).toUpperCase() === "F" ||
@@ -178,17 +180,6 @@ function ncaaTeamName(team: AnyRecord): string {
 function seriesLabel(data: PoolData, teamId: string): string {
   const team = data.teams.find((candidate) => candidate.id === teamId);
   return team?.abbreviation ?? team?.shortName ?? teamId;
-}
-
-function namesMatch(a?: string, b?: string): boolean {
-  const left = normalizeName(a);
-  const right = normalizeName(b);
-  if (!left || !right) return false;
-  return left === right || left.includes(right) || right.includes(left);
-}
-
-function normalizeName(value?: string): string {
-  return value?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? "";
 }
 
 function asRecord(value: unknown): AnyRecord {

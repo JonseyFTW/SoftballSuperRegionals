@@ -8,6 +8,7 @@ import {
   SettingsAutoForm,
 } from "@/components/admin-forms";
 import { requireAdmin } from "@/lib/auth";
+import { resolveBracket } from "@/lib/bracket";
 import { getTeam } from "@/lib/pool";
 import { getPoolData } from "@/lib/store";
 import type { Matchup, PoolData } from "@/lib/types";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   await requireAdmin();
-  const data = await getPoolData();
+  const data = resolveBracket(await getPoolData());
 
   return (
     <div className="stack">

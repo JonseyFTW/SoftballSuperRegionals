@@ -1,12 +1,33 @@
 # WCWS Pick'em
 
-Mobile-first PWA for a Women's College World Series straight pick'em pool.
+Mobile-first PWA for a Women's College World Series **double-elimination** bracket pool.
+
+## How Scoring Works
+
+Entrants fill out both sides of each four-team bracket — the winners' side and the
+elimination side — all the way to a national champion. Correct picks earn points by
+round:
+
+| Round | Points | Scored on |
+| --- | --- | --- |
+| Winners' Bracket Round 1 | 1 | each game |
+| Elimination Round 1 | 2 | each game |
+| Winners' Bracket Final | 3 | each game |
+| Elimination Final | 4 | each game |
+| Bracket Final (advance to Finals) | 5 | which team advances |
+| National Champion | 6 | which team wins the series |
+
+The bracket final and championship score on **who advances**, not on each game,
+because the loser-bracket team has to win twice (the "if necessary" game) while the
+winners-bracket team only has to win once. Max score is 38 points.
 
 ## What It Does
 
-- Public dashboard with leaderboard, payout math, live game cards, and scenario odds.
-- Public entrant pages so anyone can inspect a person's bracket.
-- Password-protected admin portal for entrants, paid status, Venmo/Zelle tags, picks, winners, payout splits, round locks, and ESPN game IDs.
+- Public dashboard with the live bracket, leaderboard, payout math, live game cards, and scenario odds.
+- Public entrant pages so anyone can inspect a person's bracket with correct/incorrect picks highlighted.
+- An interactive bracket picker that cascades picks down both sides of the bracket.
+- Optional public self-service entry (`/enter`) so people can submit their own bracket.
+- Password-protected admin portal for entrants, paid status, Venmo/Zelle tags, picks, game winners, payout splits, round locks, and ESPN game IDs.
 - Installable PWA metadata and service worker.
 
 ## Local Development

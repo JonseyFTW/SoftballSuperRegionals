@@ -6,9 +6,10 @@ import {
   fetchEspnHeaderSnapshots,
   fetchEspnScoreboardSnapshots,
 } from "./espn";
+import { resolveBracket } from "./bracket";
 import { findMatchupForSnapshot } from "./game-status";
 import { fetchNcaaBracketSnapshots } from "./ncaa";
-import { createInitialPoolData } from "./pool";
+import { createInitialPoolData, migratePoolData } from "./pool";
 import type { GameSnapshot, PoolData } from "./types";
 
 const dataFile = poolDataFile();
@@ -16,6 +17,12 @@ const defaultPoolId = "default";
 const blobPath = "pool-state/default.json";
 
 export async function getPoolData(): Promise<PoolData> {
+  // Migrate legacy (super-regional) data to the WCWS bracket on read. The first
+  // admin write then persists the upgraded structure.
+  return migratePoolData(await loadPoolData());
+}
+
+async function loadPoolData(): Promise<PoolData> {
   const supabase = supabaseConfig();
   if (supabase) {
     const data = await getSupabasePoolData(supabase);
@@ -65,9 +72,9 @@ export async function getPoolDataWithLiveSnapshots(): Promise<PoolData> {
   const data = await getPoolData();
   try {
     const snapshots = await fetchLiveSnapshots(data);
-    return { ...data, snapshots };
+    return resolveBracket({ ...data, snapshots });
   } catch {
-    return data;
+    return resolveBracket(data);
   }
 }
 
@@ -78,7 +85,8 @@ export async function syncLiveSnapshots(): Promise<GameSnapshot[]> {
   return snapshots;
 }
 
-async function fetchLiveSnapshots(data: PoolData): Promise<GameSnapshot[]> {
+async function fetchLiveSnapshots(rawData: PoolData): Promise<GameSnapshot[]> {
+  const data = resolveBracket(rawData);
   const [headerResult, scoreboardResult, ncaaResult] = await Promise.allSettled([
     fetchEspnHeaderSnapshots(),
     fetchEspnScoreboardSnapshots(),

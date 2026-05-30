@@ -1,3 +1,4 @@
+import { namesMatch } from "./names";
 import type { GameSnapshot, Matchup, PoolData } from "./types";
 
 export function getMatchupSnapshot(data: PoolData, matchup: Matchup): GameSnapshot | undefined {
@@ -130,15 +131,4 @@ function teamInSnapshot(
   return teamNames.some((teamName) =>
     snapshotNames.some((snapshotName) => namesMatch(teamName, snapshotName)),
   );
-}
-
-function namesMatch(a?: string, b?: string): boolean {
-  const left = normalizeName(a);
-  const right = normalizeName(b);
-  if (!left || !right) return false;
-  return left === right || left.includes(right) || right.includes(left);
-}
-
-function normalizeName(value?: string): string {
-  return value?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? "";
 }
